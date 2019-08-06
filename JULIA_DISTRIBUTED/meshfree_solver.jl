@@ -4,6 +4,7 @@ function main()
     wallpts, Interiorpts, outerpts, shapepts = 0,0,0,0
 
     file_name = string(ARGS[1])
+    ghost_folder_name = string(ARGS[2])
 
     numPoints = returnFileLength(file_name)
     println(numPoints)
@@ -16,7 +17,10 @@ function main()
     # print(splitdata[1:3])
     defprimal = getInitialPrimitive(configData)
 
+    ghost_holder = Array{Dict{Int64,Point},1}(undef, length(workers()))
     println("Start Read")
+
+    readGhostFile(ghost_folder_name, ghost_holder)
     # count = 0
     readFile(file_name::String, globaldata, table, defprimal, wallptsidx, outerptsidx, Interiorptsidx, shapeptsidx,
         wallpts, Interiorpts, outerpts, shapepts, numPoints)
@@ -118,8 +122,6 @@ function main()
     # println(IOContext(stdout, :compact => false), globaldata[100].ypos_conn)
     # println(IOContext(stdout, :compact => false), globaldata[100].yneg_conn)
     # println(globaldata[1])
-
-
 
     file = open("results/primvals" * string(numPoints) * ".txt", "w")
     for (idx, _) in enumerate(dist_globaldata)

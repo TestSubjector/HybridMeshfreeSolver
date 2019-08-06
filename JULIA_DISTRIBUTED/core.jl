@@ -4,6 +4,13 @@ function workerPrinterCheck()
     println(fetch(f))
 end
 
+function check_leaks()
+    if length(DistributedArrays.refs) > 0
+        sleep(1)  # allow time for any cleanup to complete and test again
+        length(DistributedArrays.refs) > 0 && @warn("Probable leak of ", length(DistributedArrays.refs), " darrays")
+    end
+end
+
 function getInitialPrimitive(configData)
     rho_inf = configData["core"]["rho_inf"]::Float64
     mach = configData["core"]["mach"]::Float64

@@ -68,7 +68,7 @@ include("config.jl")
 # export getConfig
 
 include("core.jl")
-export workerPrinterCheck
+export check_leaks, workerPrinterCheck
 # export getInitialPrimitive, getInitialPrimitive2, calculateNormals, calculateConnectivity, fpi_solver, q_var_derivatives
 
 include("file.jl")

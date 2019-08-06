@@ -61,3 +61,7 @@ function readFile(file_name::String, globaldata, table, defprimal, wallptsidx, o
     end
     return nothing
 end
+
+function readGhostFile(ghost_folder_name::String, ghost_holder)
+    println(ghost_folder_name)
+end
