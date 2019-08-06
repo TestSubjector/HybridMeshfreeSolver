@@ -7,11 +7,11 @@ function cal_flux_residual(loc_globaldata, globaldata, configData)
 	qtilde_i = zeros(Float64,4)
 	qtilde_k = zeros(Float64,4)
 	for (idx, _) in enumerate(loc_globaldata)
-		if globaldata[idx].flag_1 == 0
+		if loc_globaldata[idx].flag_1 == 0
 			wallindices_flux_residual(loc_globaldata, globaldata, configData, idx, phi_i, phi_k)
-		elseif globaldata[idx].flag_1 == 1
+		elseif loc_globaldata[idx].flag_1 == 2
 			outerindices_flux_residual(loc_globaldata, globaldata, configData, idx, phi_i, phi_k)
-		elseif globaldata[idx].flag_1 == 2
+		elseif loc_globaldata[idx].flag_1 == 1
 			interiorindices_flux_residual(loc_globaldata, globaldata, configData, idx, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 		end
 	end
@@ -25,7 +25,7 @@ function wallindices_flux_residual(loc_globaldata, globaldata, configData, itm, 
 		Gxn = wall_dGx_neg(loc_globaldata, globaldata, itm, configData, phi_i, phi_k)
 		Gyn = wall_dGy_neg(loc_globaldata, globaldata, itm, configData, phi_i, phi_k)
 		GTemp = @.((Gxp + Gxn + Gyn) * 2)
-		globaldata[itm].flux_res = GTemp
+		loc_globaldata[itm].flux_res = GTemp
 		# if itm == 3
 		# 	println(IOContext(stdout, :compact => false), Gxp)
 		# 	println(IOContext(stdout, :compact => false), Gxp + Gxn)
@@ -41,7 +41,8 @@ function outerindices_flux_residual(loc_globaldata, globaldata, configData, itm,
 		Gxn = outer_dGx_neg(loc_globaldata, globaldata, itm, configData, phi_i, phi_k)
 		Gyp = outer_dGy_pos(loc_globaldata, globaldata, itm, configData, phi_i, phi_k)
 		GTemp = @.(Gxp + Gxn + Gyp)
-		globaldata[itm].flux_res = GTemp
+
+		loc_globaldata[itm].flux_res = GTemp
 	# end
 	return nothing
 end
@@ -59,9 +60,9 @@ function interiorindices_flux_residual(loc_globaldata, globaldata, configData, i
 		# 	println(IOContext(stdout, :compact => false), Gxn + Gxp + Gyp)
 		# 	println(IOContext(stdout, :compact => false), Gxn + Gxp + Gyp + Gyn)
 		# 	println()
-		# endw
+		# end
 		GTemp = @.(Gxp + Gxn + Gyp + Gyn)
-		globaldata[itm].flux_res = GTemp
+		loc_globaldata[itm].flux_res = GTemp
 	# end
 	return nothing
 end

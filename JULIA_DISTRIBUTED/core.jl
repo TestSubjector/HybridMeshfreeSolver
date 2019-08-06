@@ -154,7 +154,11 @@ function fpi_solver(iter, globaldata, dist_globaldata, configData, wallindices, 
         # if iter == 1
             # println("Starting StateUpdate")
         # end
-        # state_update(globaldata, wallindices, outerindices, interiorindices, configData, iter, res_old, rk, numPoints)
+        @sync for ip in procs(dist_globaldata)
+            @spawnat ip begin
+                state_update(dist_globaldata[:L], dist_globaldata, configData, iter, res_old, rk, numPoints)
+            end
+        end
     end
     println("Iteration Number ", iter, " ")
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)

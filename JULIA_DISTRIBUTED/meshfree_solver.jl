@@ -90,9 +90,10 @@ function main()
     # wait(t)
     # rmprocs(length(workers()))
     # @spawnat 2 begin
-    println(globaldata[1])
-    println(globaldata[end])
-    close(dist_globaldata)
+    println(dist_globaldata[1])
+    println(dist_globaldata[end])
+    # globaldata = makelocal(dist_globaldata)
+    # close(dist_globaldata)
     # end
     # compute_cl_cd_cm(globaldata, configData, shapeptsidx)
 
@@ -120,14 +121,15 @@ function main()
 
 
 
-    # file  = open("results/primvals" * string(numPoints) * ".txt", "w")
-    # for (idx, itm) in enumerate(globaldata)
-    #     primtowrite = globaldata[idx].prim
-    #     for element in primtowrite
-    #         @printf(file,"%0.17f", element)
-    #         @printf(file, " ")
-    #     end
-    #     print(file, "\n")
-    # end
-    # close(file)
+    file = open("results/primvals" * string(numPoints) * ".txt", "w")
+    for (idx, _) in enumerate(dist_globaldata)
+        primtowrite = dist_globaldata[idx].prim
+        for element in primtowrite
+            @printf(file,"%0.17f", element)
+            @printf(file, " ")
+        end
+        print(file, "\n")
+    end
+    close(file)
+    close(dist_globaldata)
 end

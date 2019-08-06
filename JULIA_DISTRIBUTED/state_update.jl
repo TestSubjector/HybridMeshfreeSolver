@@ -25,36 +25,24 @@ function func_delta(loc_globaldata, globaldata, configData)
     return nothing
 end
 
-function state_update(globaldata, wallindices, outerindices, interiorindices, configData, iter, res_old, rk, numPoints)
+function state_update(loc_globaldata, globaldata, configData, iter, res_old, rk, numPoints)
     max_res = zero(Float64)
     sum_res_sqr = zeros(Float64, 1)
     U = zeros(Float64, 4)
     Uold = zeros(Float64, 4)
     # println("Prim1.01a")
     # println(IOContext(stdout, :compact => false), globaldata[1].prim)
-    for itm in wallindices
-        fill!(U, 0.0)
-        state_update_wall(globaldata, itm, max_res, sum_res_sqr, U, Uold, rk)
-        # if itm == 3
-        #     println(sum_res_sqr)
-        # end
-    end
-
-    # println("Prim1.01b")
-    # println(IOContext(stdout, :compact => false), globaldata[1].prim)
-
-    for itm in outerindices
-        fill!(U, 0.0)
-        state_update_outer(globaldata, configData, itm, max_res, sum_res_sqr, U, Uold, rk)
-    end
-
-    for itm in interiorindices
-        fill!(U, 0.0)
-        # if itm == 1
-        #     println("Prim1.01c")
-        #     println(IOContext(stdout, :compact => false), globaldata[itm].prim)
-        # end
-        state_update_interior(globaldata, itm, max_res, sum_res_sqr, U, Uold, rk)
+    for (itm, _) in enumerate(loc_globaldata)
+        if loc_globaldata[itm].flag_1 == 0
+            fill!(U, 0.0)
+            state_update_wall(loc_globaldata, itm, max_res, sum_res_sqr, U, Uold, rk)
+        elseif loc_globaldata[itm].flag_1 == 2
+            fill!(U, 0.0)
+            state_update_outer(loc_globaldata, configData, itm, max_res, sum_res_sqr, U, Uold, rk)
+        elseif loc_globaldata[itm].flag_1 == 1
+            fill!(U, 0.0)
+            state_update_interior(loc_globaldata, itm, max_res, sum_res_sqr, U, Uold, rk)
+        end
     end
     # println(sum_res_sqr[1])
     # println("The length is ", length(globaldata))
