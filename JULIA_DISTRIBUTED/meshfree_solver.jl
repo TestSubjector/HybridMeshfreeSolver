@@ -17,33 +17,57 @@ function main()
     # print(splitdata[1:3])
     defprimal = getInitialPrimitive(configData)
 
-    ghost_holder = Array{Dict{Int64,Point},1}(undef, length(workers()))
+    local_points_holder = Array{Array{Point,1},1}(undef, nworkers())
+    ghost_holder = Array{Dict{Int64,Point},1}(undef, nworkers())
+
     println("Start Read")
 
-    readGhostFile(ghost_folder_name, ghost_holder)
-    # count = 0
-    readFile(file_name::String, globaldata, table, defprimal, wallptsidx, outerptsidx, Interiorptsidx, shapeptsidx,
-        wallpts, Interiorpts, outerpts, shapepts, numPoints)
 
-    format = configData["format"]["type"]
-    if format == 1
-        interior = configData["point"]["interior"]
-        wall = configData["point"]["wall"]
-        outer = configData["point"]["outer"]
-        @showprogress 2 "Computing Connectivity" for idx in 1:numPoints
-            placeNormals(globaldata, idx, configData, interior, wall, outer)
+    # count = 0
+    # readFile(file_name::String, globaldata, table, defprimal, wallptsidx, outerptsidx, Interiorptsidx, shapeptsidx,
+        # wallpts, Interiorpts, outerpts, shapepts, numPoints)
+
+    # format = configData["format"]["type"]
+    # if format == 1
+    #     interior = configData["point"]["interior"]
+    #     wall = configData["point"]["wall"]
+    #     outer = configData["point"]["outer"]
+    #     @showprogress 2 "Computing Connectivity" for idx in 1:numPoints
+    #         placeNormals(globaldata, idx, configData, interior, wall, outer)
+    #     end
+    # end
+
+    # println("Start table sorting")
+    # @showprogress 3 "Computing Table" for idx in table
+    #     connectivity = calculateConnectivity(globaldata, idx)
+    #     setConnectivity(globaldata[idx], connectivity)
+    #     # smallest_dist(globaldata, idx)
+    #     # if idx % (length(table) * 0.25) == 0
+    #     #     println("Bump In Table")
+    #     # end
+    # end
+
+    ras = [@spawnat p readDistribuedFile(ghost_folder_name::String, local_points_holder, defprimal, p) for p in workers()]
+    rasa = reshape(ras, (nworkers()))
+    points_holder = DArray(rasa)
+    # readGhostFile(ghost_folder_name, ghost_holder, globaldata)
+    # ghost_holder = distribute(ghost_holder, procs=workers(), dist=(length(workers()),))
+    # lph = distribute(local_points_holder, procs=workers(), dist=(nworkers(),))
+    # # @sync for pid in procs(local_points_holder)
+    # #   @spawnat pid begin
+    #     #   println(localindices(local_points_holder))
+    # #   end
+    # # end
+
+    # points_holder = DArray(reshape([lph[1]..., lph[2]...,lph[3]...,lph[4]...], :))
+    @sync for pid in procs(points_holder)
+        @spawnat pid begin
+            println(localindices(points_holder))
         end
     end
 
-    println("Start table sorting")
-    @showprogress 3 "Computing Table" for idx in table
-        connectivity = calculateConnectivity(globaldata, idx)
-        setConnectivity(globaldata[idx], connectivity)
-        # smallest_dist(globaldata, idx)
-        # if idx % (length(table) * 0.25) == 0
-        #     println("Bump In Table")
-        # end
-    end
+    exit()
+
     # println(wallptsidx)
 
     # println(globaldata[3])
@@ -57,16 +81,16 @@ function main()
     # println("Size is: ", length(globaldata))
 
     println(Int(getConfig()["core"]["max_iters"]) + 1)
-    function run_code(globaldata, dist_globaldata, configData, wallptsidx::Array{Int32,1}, outerptsidx::Array{Int32,1}, Interiorptsidx::Array{Int32,1}, res_old, numPoints)
+    function run_code(ghost_holder, dist_globaldata, configData, wallptsidx::Array{Int32,1}, outerptsidx::Array{Int32,1}, Interiorptsidx::Array{Int32,1}, res_old, numPoints)
         for i in 1:(Int(getConfig()["core"]["max_iters"]))
-            fpi_solver(i, globaldata, dist_globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old, numPoints)
+            fpi_solver(i, ghost_holder, dist_globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old, numPoints)
         end
     end
 
     res_old = zeros(Float64, 1)
-    function test_code(globaldata, dist_globaldata, configData, wallptsidx::Array{Int32,1}, outerptsidx::Array{Int32,1}, Interiorptsidx::Array{Int32,1}, res_old, numPoints)
+    function test_code(ghost_holder, dist_globaldata, configData, wallptsidx::Array{Int32,1}, outerptsidx::Array{Int32,1}, Interiorptsidx::Array{Int32,1}, res_old, numPoints)
         println("! Starting warmup function")
-        fpi_solver(1, globaldata, dist_globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old, numPoints)
+        fpi_solver(1, ghost_holder, dist_globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old, numPoints)
         res_old[1] = 0.0
         # Profile.clear_malloc_data()
         # @trace(fpi_solver(1, globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old), maxdepth = 3)
@@ -77,12 +101,12 @@ function main()
         # res_old[1] = 0.0
         println("! Starting main function")
         @timeit to "nest 4" begin
-            run_code(globaldata, dist_globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old, numPoints)
+            run_code(ghost_holder, dist_globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old, numPoints)
         end
     end
 
 
-    test_code(globaldata, dist_globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old, numPoints)
+    test_code(ghost_holder, dist_globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old, numPoints)
     println("! Work Completed")
     # # println(to)
     open("results/timer" * string(numPoints) * "_" * string(getConfig()["core"]["max_iters"]) *
@@ -133,5 +157,6 @@ function main()
         print(file, "\n")
     end
     close(file)
+    close(ghost_holder)
     close(dist_globaldata)
 end

@@ -11,6 +11,15 @@ function check_leaks()
     end
 end
 
+function updateLocalGhost(loc_ghost_holder, dist_globaldata)
+    localkeys = keys(loc_ghost_holder)
+    print(localkeys)
+    for iter in localkeys
+        #Dict To Arraay Equality
+        loc_ghost_holder[1][iter] = dist_globaldata[iter]
+    end
+end
+
 function getInitialPrimitive(configData)
     rho_inf = configData["core"]["rho_inf"]::Float64
     mach = configData["core"]["mach"]::Float64
@@ -122,7 +131,7 @@ function calculateConnectivity(globaldata, idx)
     return (xpos_conn, xneg_conn, ypos_conn, yneg_conn)
 end
 
-function fpi_solver(iter, globaldata, dist_globaldata, configData, wallindices, outerindices, interiorindices, res_old, numPoints)
+function fpi_solver(iter, ghost_holder, dist_globaldata, configData, wallindices, outerindices, interiorindices, res_old, numPoints)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # print(" 111\n")
     if iter == 1
@@ -133,7 +142,7 @@ function fpi_solver(iter, globaldata, dist_globaldata, configData, wallindices, 
     @sync for ip in procs(dist_globaldata)
         @spawnat ip begin
             # println(length(localpart(globaldata)))
-            func_delta(dist_globaldata[:L], dist_globaldata, configData)
+            func_delta(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], configData, numPoints)
         end
     end
 
