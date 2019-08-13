@@ -15,7 +15,7 @@ function updateLocalGhost(loc_ghost_holder, dist_globaldata)
     localkeys = keys(loc_ghost_holder)
     print(localkeys)
     for iter in localkeys
-        #Dict To Arraay Equality
+        #Dict To Array Equality
         loc_ghost_holder[1][iter] = dist_globaldata[iter]
     end
 end
@@ -45,21 +45,37 @@ function getInitialPrimitive2(configData)
     return finaldata
 end
 
-function placeNormals(globaldata, idx, configData, interior, wall, outer)
-    flag = globaldata[idx].flag_1
-    if flag == wall || flag == outer
-        currpt = getxy(globaldata[idx])
-        leftpt = globaldata[idx].left
-        leftpt = getxy(globaldata[leftpt])
-        rightpt = globaldata[idx].right
-        rightpt = getxy(globaldata[rightpt])
-        normals = calculateNormals(leftpt, rightpt, currpt[1], currpt[2])
-        setNormals(globaldata[idx], normals)
-    elseif flag == interior
-        setNormals(globaldata[idx], (0,1))
-    else
-        @warn "Illegal Point Type"
+function placeNormals(loc_globaldata, globaldata, loc_ghost_holder, interior, wall, outer)
+    local_size = length(loc_globaldata)
+    # println(local_size, " is the local size")
+    for idx in 1:local_size
+        flag = loc_globaldata[idx].flag_1
+        if flag == wall || flag == outer
+            currpt = getxy(loc_globaldata[idx])
+            leftpt = loc_globaldata[idx].left
+            rightpt = loc_globaldata[idx].right
+
+            if leftpt <= local_size
+                leftpt = getxy(loc_globaldata[leftpt])
+            else
+                leftpt = getxy(globaldata[loc_ghost_holder[1][leftpt]])
+            end
+
+            if rightpt <= local_size
+                rightpt = getxy(loc_globaldata[rightpt])
+            else
+                rightpt = getxy(globaldata[loc_ghost_holder[1][rightpt]])
+            end
+
+            normals = calculateNormals(leftpt, rightpt, currpt[1], currpt[2])
+            setNormals(loc_globaldata[idx], normals)
+        elseif flag == interior
+            setNormals(loc_globaldata[idx], (0,1))
+        else
+            @warn "Illegal Point Type"
+        end
     end
+    return nothing
 end
 
 function calculateNormals(left, right, mx, my)
@@ -86,52 +102,64 @@ function calculateNormals(left, right, mx, my)
     return (nx,ny)
 end
 
-function calculateConnectivity(globaldata, idx)
-    ptInterest = globaldata[idx]
-    currx = ptInterest.x
-    curry = ptInterest.y
-    nx = ptInterest.nx
-    ny = ptInterest.ny
+function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
+    local_size = length(loc_globaldata)
+    for idx in 1:local_size
+        ptInterest = loc_globaldata[idx]
+        currx = ptInterest.x
+        curry = ptInterest.y
+        nx = ptInterest.nx
+        ny = ptInterest.ny
 
-    flag = ptInterest.flag_1
+        flag = ptInterest.flag_1
 
-    xpos_conn,xneg_conn,ypos_conn,yneg_conn = Array{Int32,1}(undef, 0),Array{Int32,1}(undef, 0),Array{Int32,1}(undef, 0),Array{Int32,1}(undef, 0)
+        xpos_conn,xneg_conn,ypos_conn,yneg_conn = Array{Int32,1}(undef, 0),Array{Int32,1}(undef, 0),Array{Int32,1}(undef, 0),Array{Int32,1}(undef, 0)
 
-    tx = ny
-    ty = -nx
+        tx = ny
+        ty = -nx
 
-    for itm in ptInterest.conn
-        itmx = globaldata[itm].x
-        itmy = globaldata[itm].y
+        for itm in ptInterest.conn
+            if itm == 8106
+                println(loc_globaldata[idx])
+            end
+            if itm <= local_size
+                itmx = loc_globaldata[itm].x
+                itmy = loc_globaldata[itm].y
+            else
+                itmx = globaldata[loc_ghost_holder[1][itm]].x
+                itmy = globaldata[loc_ghost_holder[1][itm]].y
+            end
 
-        delx = itmx - currx
-        dely = itmy - curry
+            delx = itmx - currx
+            dely = itmy - curry
 
-        dels = delx*tx + dely*ty
-        deln = delx*nx + dely*ny
-        if dels <= 0.0
-            push!(xpos_conn, itm)
-        end
-        if dels >= 0.0
-            push!(xneg_conn, itm)
-        end
-        if flag == 1
-            if deln <= 0.0
+            dels = delx*tx + dely*ty
+            deln = delx*nx + dely*ny
+            if dels <= 0.0
+                push!(xpos_conn, itm)
+            end
+            if dels >= 0.0
+                push!(xneg_conn, itm)
+            end
+            if flag == 1
+                if deln <= 0.0
+                    push!(ypos_conn, itm)
+                end
+                if deln >= 0.0
+                    push!(yneg_conn, itm)
+                end
+            elseif flag == 0
+                push!(yneg_conn, itm)
+            elseif flag == 2
                 push!(ypos_conn, itm)
             end
-            if deln >= 0.0
-                push!(yneg_conn, itm)
-            end
-        elseif flag == 0
-            push!(yneg_conn, itm)
-        elseif flag == 2
-            push!(ypos_conn, itm)
         end
+        setConnectivity(loc_globaldata[idx], (xpos_conn, xneg_conn, ypos_conn, yneg_conn))
     end
-    return (xpos_conn, xneg_conn, ypos_conn, yneg_conn)
+    return nothing
 end
 
-function fpi_solver(iter, ghost_holder, dist_globaldata, configData, wallindices, outerindices, interiorindices, res_old, numPoints)
+function fpi_solver(iter, ghost_holder, dist_globaldata, configData, res_old, numPoints)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # print(" 111\n")
     if iter == 1
@@ -147,34 +175,34 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, configData, wallindices
     end
 
     for rk in 1:4
-        # if iter == 1
-            # println("Starting QVar")
-        # end
+    #    # if iter == 1
+    #        # println("Starting QVar")
+    #    # end
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                q_var_derivatives(dist_globaldata[:L], dist_globaldata, configData)
+                q_var_derivatives(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], configData)
             end
         end
-        # println(IOContext(stdout, :compact => false), globaldata[3].prim)
-        # if iter == 1
-            # println("Starting Calflux")
-        # end
-        @sync for ip in procs(dist_globaldata)
-            @spawnat ip begin
-                cal_flux_residual(dist_globaldata[:L], dist_globaldata, configData)
-            end
-        end
-        # println(IOContext(stdout, :compact => false), globaldata[3].prim)
-        # println(IOContext(stdout, :compact => false), globaldata[3].prim)
-        # residue = 0
-        # if iter == 1
-            # println("Starting StateUpdate")
-        # end
-        @sync for ip in procs(dist_globaldata)
-            @spawnat ip begin
-                state_update(dist_globaldata[:L], dist_globaldata, configData, iter, res_old, rk, numPoints)
-            end
-        end
+    #    # println(IOContext(stdout, :compact => false), globaldata[3].prim)
+    #    # if iter == 1
+    #        # println("Starting Calflux")
+    #    # end
+    #    @sync for ip in procs(dist_globaldata)
+    #        @spawnat ip begin
+    #            cal_flux_residual(dist_globaldata[:L], dist_globaldata, configData)
+    #        end
+    #    end
+    #    # println(IOContext(stdout, :compact => false), globaldata[3].prim)
+    #    # println(IOContext(stdout, :compact => false), globaldata[3].prim)
+    #    # residue = 0
+    #    # if iter == 1
+    #        # println("Starting StateUpdate")
+    #    # end
+    #    @sync for ip in procs(dist_globaldata)
+    #        @spawnat ip begin
+    #            state_update(dist_globaldata[:L], dist_globaldata, configData, iter, res_old, rk, numPoints)
+    #        end
+    #    end
     end
     println("Iteration Number ", iter, " ")
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
@@ -182,7 +210,7 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, configData, wallindices
     return nothing
 end
 
-function q_var_derivatives(loc_globaldata, globaldata, configData)
+function q_var_derivatives(loc_globaldata, globaldata, loc_ghost_holder, configData)
     power::Float64 = configData["core"]["power"]
 
     for (idx, itm) in enumerate(loc_globaldata)
@@ -205,6 +233,7 @@ function q_var_derivatives(loc_globaldata, globaldata, configData)
     # println(IOContext(stdout, :compact => false), globaldata[3].q)
     sum_delx_delq = zeros(Float64, 4)
     sum_dely_delq = zeros(Float64, 4)
+    dist_length = length(loc_globaldata)
     for (idx, itm) in enumerate(loc_globaldata)
         x_i = itm.x
         y_i = itm.y
@@ -218,7 +247,11 @@ function q_var_derivatives(loc_globaldata, globaldata, configData)
             loc_globaldata[idx].min_q[i] = loc_globaldata[idx].q[i]
         end
         for conn in itm.conn
-            globaldata_conn = globaldata[conn]
+            if conn <= dist_length
+                globaldata_conn = loc_globaldata[conn]
+            else
+                globaldata_conn = globaldata[loc_ghost_holder[1][conn]]
+            end
             x_k = globaldata_conn.x
             y_k = globaldata_conn.y
             delx = x_k - x_i

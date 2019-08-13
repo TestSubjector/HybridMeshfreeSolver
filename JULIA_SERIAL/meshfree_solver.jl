@@ -42,7 +42,7 @@ function main()
     end
     # println(wallptsidx)
 
-    # println(globaldata[3])
+    println(globaldata[105])
     # return
 
     println(Int(getConfig()["core"]["max_iters"]) + 1)
