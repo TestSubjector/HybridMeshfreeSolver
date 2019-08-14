@@ -54,6 +54,7 @@ mutable struct Point
     max_q::Array{Float64,1}
     min_q::Array{Float64,1}
     prim_old::Array{Float64,1}
+    globalID::Int64
 end
 
 # using PyCall

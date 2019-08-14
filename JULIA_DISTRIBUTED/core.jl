@@ -12,11 +12,11 @@ function check_leaks()
 end
 
 function updateLocalGhost(loc_ghost_holder, dist_globaldata)
-    localkeys = keys(loc_ghost_holder)
-    print(localkeys)
+    localkeys = keys(loc_ghost_holder[1])
+    # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
-        loc_ghost_holder[1][iter] = dist_globaldata[iter]
+        loc_ghost_holder[1][iter] = dist_globaldata[loc_ghost_holder[1][iter].globalID]
     end
 end
 
@@ -48,6 +48,7 @@ end
 function placeNormals(loc_globaldata, globaldata, loc_ghost_holder, interior, wall, outer)
     local_size = length(loc_globaldata)
     # println(local_size, " is the local size")
+    updateLocalGhost(loc_ghost_holder, globaldata)
     for idx in 1:local_size
         flag = loc_globaldata[idx].flag_1
         if flag == wall || flag == outer
@@ -58,13 +59,13 @@ function placeNormals(loc_globaldata, globaldata, loc_ghost_holder, interior, wa
             if leftpt <= local_size
                 leftpt = getxy(loc_globaldata[leftpt])
             else
-                leftpt = getxy(globaldata[loc_ghost_holder[1][leftpt]])
+                leftpt = getxy(loc_ghost_holder[1][leftpt])
             end
 
             if rightpt <= local_size
                 rightpt = getxy(loc_globaldata[rightpt])
             else
-                rightpt = getxy(globaldata[loc_ghost_holder[1][rightpt]])
+                rightpt = getxy(loc_ghost_holder[1][rightpt])
             end
 
             normals = calculateNormals(leftpt, rightpt, currpt[1], currpt[2])
@@ -104,6 +105,7 @@ end
 
 function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
     local_size = length(loc_globaldata)
+
     for idx in 1:local_size
         ptInterest = loc_globaldata[idx]
         currx = ptInterest.x
@@ -126,8 +128,8 @@ function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
                 itmx = loc_globaldata[itm].x
                 itmy = loc_globaldata[itm].y
             else
-                itmx = globaldata[loc_ghost_holder[1][itm]].x
-                itmy = globaldata[loc_ghost_holder[1][itm]].y
+                itmx = loc_ghost_holder[1][itm].x
+                itmy = loc_ghost_holder[1][itm].y
             end
 
             delx = itmx - currx
@@ -183,26 +185,26 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, configData, res_old, nu
                 q_var_derivatives(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], configData)
             end
         end
-    #    # println(IOContext(stdout, :compact => false), globaldata[3].prim)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[3])
     #    # if iter == 1
     #        # println("Starting Calflux")
     #    # end
-    #    @sync for ip in procs(dist_globaldata)
-    #        @spawnat ip begin
-    #            cal_flux_residual(dist_globaldata[:L], dist_globaldata, configData)
-    #        end
-    #    end
+        @sync for ip in procs(dist_globaldata)
+            @spawnat ip begin
+                cal_flux_residual(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], configData)
+            end
+        end
     #    # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     #    # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     #    # residue = 0
     #    # if iter == 1
     #        # println("Starting StateUpdate")
     #    # end
-    #    @sync for ip in procs(dist_globaldata)
-    #        @spawnat ip begin
-    #            state_update(dist_globaldata[:L], dist_globaldata, configData, iter, res_old, rk, numPoints)
-    #        end
-    #    end
+       @sync for ip in procs(dist_globaldata)
+           @spawnat ip begin
+               state_update(dist_globaldata[:L], dist_globaldata, configData, iter, res_old, rk, numPoints)
+           end
+       end
     end
     println("Iteration Number ", iter, " ")
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
@@ -234,6 +236,8 @@ function q_var_derivatives(loc_globaldata, globaldata, loc_ghost_holder, configD
     sum_delx_delq = zeros(Float64, 4)
     sum_dely_delq = zeros(Float64, 4)
     dist_length = length(loc_globaldata)
+
+    updateLocalGhost(loc_ghost_holder, globaldata)
     for (idx, itm) in enumerate(loc_globaldata)
         x_i = itm.x
         y_i = itm.y
@@ -250,7 +254,7 @@ function q_var_derivatives(loc_globaldata, globaldata, loc_ghost_holder, configD
             if conn <= dist_length
                 globaldata_conn = loc_globaldata[conn]
             else
-                globaldata_conn = globaldata[loc_ghost_holder[1][conn]]
+                globaldata_conn = loc_ghost_holder[1][conn]
             end
             x_k = globaldata_conn.x
             y_k = globaldata_conn.y

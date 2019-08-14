@@ -122,7 +122,7 @@ function fpi_solver(iter, globaldata, configData, wallindices, outerindices, int
             # println("Starting QVar")
         # end
         q_var_derivatives(globaldata, configData)
-        # println(IOContext(stdout, :compact => false), globaldata[3].prim)
+        # println(IOContext(stdout, :compact => false), globaldata[2])
         # if iter == 1
             # println("Starting Calflux")
         # end

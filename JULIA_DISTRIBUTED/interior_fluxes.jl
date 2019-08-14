@@ -1,5 +1,4 @@
-
-function interior_dGx_pos(loc_globaldata, globaldata, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
+function interior_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 
     power::Float64 = configData["core"]["power"]::Float64
     limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
@@ -25,7 +24,11 @@ function interior_dGx_pos(loc_globaldata, globaldata, idx, configData, phi_i, ph
     # fill!(result, 0)
 
     for itm in loc_globaldata[idx].xpos_conn
-        globaldata_itm = globaldata[itm]
+        if itm <= dist_length
+            globaldata_itm = loc_globaldata[itm]
+        else
+            globaldata_itm = loc_ghost_holder[1][itm]
+        end
         x_k = globaldata_itm.x
         y_k = globaldata_itm.y
 
@@ -99,7 +102,7 @@ function interior_dGx_pos(loc_globaldata, globaldata, idx, configData, phi_i, ph
     return @. (sum_delx_delf*sum_dely_sqr - sum_dely_delf*sum_delx_dely)*one_by_det
 end
 
-function interior_dGx_neg(loc_globaldata, globaldata, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
+function interior_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 
     power::Float64 = configData["core"]["power"]::Float64
     limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
@@ -126,7 +129,11 @@ function interior_dGx_neg(loc_globaldata, globaldata, idx, configData, phi_i, ph
 
     for itm in loc_globaldata[idx].xneg_conn
 
-        globaldata_itm = globaldata[itm]
+        if itm <= dist_length
+            globaldata_itm = loc_globaldata[itm]
+        else
+            globaldata_itm = loc_ghost_holder[1][itm]
+        end
         x_k = globaldata_itm.x
         y_k = globaldata_itm.y
 
@@ -179,6 +186,15 @@ function interior_dGx_neg(loc_globaldata, globaldata, idx, configData, phi_i, ph
         #        end
         #    end
         #end
+        if qtilde_i[4] > 0
+            println("This is i ", idx," ", itm)
+        end
+        if qtilde_k[4] > 0
+            println("This is k ", idx," ", itm)
+            println(loc_globaldata[idx])
+            println(globaldata_itm)
+            println(qtilde_k)
+        end
         qtilde_to_primitive(result, qtilde_i, configData)
         flux_Gxn(G_i, nx, ny, result[1], result[2], result[3], result[4])
 
@@ -207,7 +223,7 @@ function interior_dGx_neg(loc_globaldata, globaldata, idx, configData, phi_i, ph
     return @. (sum_delx_delf*sum_dely_sqr - sum_dely_delf*sum_delx_dely)*one_by_det
 end
 
-function interior_dGy_pos(loc_globaldata, globaldata, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
+function interior_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 
     power::Float64 = configData["core"]["power"]::Float64
     limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
@@ -234,7 +250,11 @@ function interior_dGy_pos(loc_globaldata, globaldata, idx, configData, phi_i, ph
 
     for itm in loc_globaldata[idx].ypos_conn
 
-        globaldata_itm = globaldata[itm]
+        if itm <= dist_length
+            globaldata_itm = loc_globaldata[itm]
+        else
+            globaldata_itm = loc_ghost_holder[1][itm]
+        end
         x_k = globaldata_itm.x
         y_k = globaldata_itm.y
 
@@ -310,7 +330,7 @@ function interior_dGy_pos(loc_globaldata, globaldata, idx, configData, phi_i, ph
 
 end
 
-function interior_dGy_neg(loc_globaldata, globaldata, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
+function interior_dGy_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 
     power::Float64 = configData["core"]["power"]::Float64
     limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
@@ -337,7 +357,11 @@ function interior_dGy_neg(loc_globaldata, globaldata, idx, configData, phi_i, ph
 
     for itm in loc_globaldata[idx].yneg_conn
 
-        globaldata_itm = globaldata[itm]
+        if itm <= dist_length
+            globaldata_itm = loc_globaldata[itm]
+        else
+            globaldata_itm = loc_ghost_holder[1][itm]
+        end
         x_k = globaldata_itm.x
         y_k = globaldata_itm.y
 

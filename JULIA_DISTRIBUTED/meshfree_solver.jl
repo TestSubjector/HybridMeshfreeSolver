@@ -18,11 +18,12 @@ function main()
     defprimal = getInitialPrimitive(configData)
 
     local_points_holder = Array{Array{Point,1},1}(undef, nworkers())
-    ghost_holder = Array{Dict{Int64,Int64},1}(undef, nworkers())
-    global_local_map_index = Array{Int64,1}(undef, numPoints)
+    ghost_holder = Array{Dict{Int64,Point},1}(undef, nworkers())
+    global_local_map_index = Dict{Tuple{Float64, Float64},Int64}()
+    global_local_direct_index = Array{Int64, 1}(undef, numPoints)
     println("Indexing")
 
-    createGlobalLocalMapIndex(global_local_map_index, folder_name::String)
+    createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, folder_name::String)
     # println(global_local_map_index)
 
     println("Start Read")
@@ -31,14 +32,14 @@ function main()
         # wallpts, Interiorpts, outerpts, shapepts, numPoints)
 
     # println("Read Local Files")
-    ras = [@spawnat p readDistribuedFile(folder_name::String, local_points_holder, defprimal, p) for p in workers()]
+    ras = [@spawnat p readDistribuedFile(folder_name::String, local_points_holder, defprimal, p, global_local_map_index) for p in workers()]
     rasa = reshape(ras, (nworkers()))
     # println(fetch(rasa[3]))
     dist_globaldata = DArray(rasa)
 
 
     println("Reading Ghost")
-    readGhostFile(folder_name, ghost_holder, global_local_map_index)
+    readGhostFile(folder_name, ghost_holder, global_local_map_index, dist_globaldata)
     # println(ghost_holder[1])
     ghost_holder = distribute(ghost_holder, procs=workers(), dist=(length(workers()),))
 
@@ -158,16 +159,16 @@ function main()
     # println(IOContext(stdout, :compact => false), globaldata[100].yneg_conn)
     # println(globaldata[1])
 
-    # file = open("results/primvals" * string(numPoints) * ".txt", "w")
-    # for (idx, _) in enumerate(dist_globaldata)
-    #     primtowrite = dist_globaldata[idx].prim
-    #     for element in primtowrite
-    #         @printf(file,"%0.17f", element)
-    #         @printf(file, " ")
-    #     end
-    #     print(file, "\n")
-    # end
-    # close(file)
+    file = open("results/primvals" * string(numPoints) * ".txt", "w")
+    for (idx, _) in enumerate(dist_globaldata)
+        primtowrite = dist_globaldata[global_local_direct_index[idx]].prim
+        for element in primtowrite
+            @printf(file,"%0.17f", element)
+            @printf(file, " ")
+        end
+        print(file, "\n")
+    end
+    close(file)
     close(ghost_holder)
     close(dist_globaldata)
 end

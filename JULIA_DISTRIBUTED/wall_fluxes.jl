@@ -1,4 +1,4 @@
-function wall_dGx_pos(loc_globaldata, globaldata, idx, configData, phi_i, phi_k)
+function wall_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k)
 
     power::Float64 = configData["core"]["power"]::Float64
     limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
@@ -27,7 +27,11 @@ function wall_dGx_pos(loc_globaldata, globaldata, idx, configData, phi_i, phi_k)
 
     for itm in loc_globaldata[idx].xpos_conn
 
-        globaldata_itm = globaldata[itm]
+        if itm <= dist_length
+            globaldata_itm = loc_globaldata[itm]
+        else
+            globaldata_itm = loc_ghost_holder[1][itm]
+        end
         x_k = globaldata_itm.x
         y_k = globaldata_itm.y
 
@@ -161,7 +165,7 @@ function wall_dGx_pos(loc_globaldata, globaldata, idx, configData, phi_i, phi_k)
     return G
 end
 
-function wall_dGx_neg(loc_globaldata, globaldata, idx, configData, phi_i, phi_k)
+function wall_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k)
 
     power::Float64 = configData["core"]["power"]::Float64
     limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
@@ -189,7 +193,11 @@ function wall_dGx_neg(loc_globaldata, globaldata, idx, configData, phi_i, phi_k)
     # phi_k = zeros(Float64,4)
 
     for itm in loc_globaldata[idx].xneg_conn
-        globaldata_itm = globaldata[itm]
+        if itm <= dist_length
+            globaldata_itm = loc_globaldata[itm]
+        else
+            globaldata_itm = loc_ghost_holder[1][itm]
+        end
         x_k = globaldata_itm.x
         y_k = globaldata_itm.y
 
@@ -257,7 +265,7 @@ function wall_dGx_neg(loc_globaldata, globaldata, idx, configData, phi_i, phi_k)
     return G
 end
 
-function wall_dGy_neg(loc_globaldata, globaldata, idx, configData, phi_i, phi_k)
+function wall_dGy_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k)
 
     power::Float64 = configData["core"]["power"]::Float64
     limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
@@ -286,7 +294,11 @@ function wall_dGy_neg(loc_globaldata, globaldata, idx, configData, phi_i, phi_k)
 
     for itm in loc_globaldata[idx].yneg_conn
 
-        globaldata_itm = globaldata[itm]
+        if itm <= dist_length
+            globaldata_itm = loc_globaldata[itm]
+        else
+            globaldata_itm = loc_ghost_holder[1][itm]
+        end
         x_k = globaldata_itm.x
         y_k = globaldata_itm.y
 

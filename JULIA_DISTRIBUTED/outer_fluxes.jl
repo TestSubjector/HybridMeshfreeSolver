@@ -1,4 +1,4 @@
-function outer_dGx_pos(loc_globaldata, globaldata, idx, configData, phi_i, phi_k)
+function outer_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k)
 
     power::Float64 = configData["core"]["power"]
     limiter_flag::Float64 = configData["core"]["limiter_flag"]
@@ -26,7 +26,11 @@ function outer_dGx_pos(loc_globaldata, globaldata, idx, configData, phi_i, phi_k
 
     for itm in loc_globaldata[idx].xpos_conn
 
-        globaldata_itm = globaldata[itm]
+        if itm <= dist_length
+            globaldata_itm = loc_globaldata[itm]
+        else
+            globaldata_itm = loc_ghost_holder[1][itm]
+        end
         x_k = globaldata_itm.x
         y_k = globaldata_itm.y
 
@@ -93,7 +97,7 @@ function outer_dGx_pos(loc_globaldata, globaldata, idx, configData, phi_i, phi_k
     return @. (sum_delx_delf*sum_dely_sqr - sum_dely_delf*sum_delx_dely)*one_by_det
 end
 
-function outer_dGx_neg(loc_globaldata, globaldata, idx, configData, phi_i, phi_k)
+function outer_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k)
 
     power::Float64 = configData["core"]["power"]::Float64
     limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
@@ -121,7 +125,11 @@ function outer_dGx_neg(loc_globaldata, globaldata, idx, configData, phi_i, phi_k
 
     for itm in loc_globaldata[idx].xneg_conn
 
-        globaldata_itm = globaldata[itm]
+        if itm <= dist_length
+            globaldata_itm = loc_globaldata[itm]
+        else
+            globaldata_itm = loc_ghost_holder[1][itm]
+        end
         x_k = globaldata_itm.x
         y_k = globaldata_itm.y
 
@@ -187,7 +195,7 @@ function outer_dGx_neg(loc_globaldata, globaldata, idx, configData, phi_i, phi_k
     return @. (sum_delx_delf*sum_dely_sqr - sum_dely_delf*sum_delx_dely)*one_by_det
 end
 
-function outer_dGy_pos(loc_globaldata, globaldata, idx, configData, phi_i, phi_k)
+function outer_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k)
 
     power::Float64 = configData["core"]["power"]::Float64
     limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
@@ -214,7 +222,11 @@ function outer_dGy_pos(loc_globaldata, globaldata, idx, configData, phi_i, phi_k
 
 
     for itm in loc_globaldata[idx].ypos_conn
-        globaldata_itm = globaldata[itm]
+        if itm <= dist_length
+            globaldata_itm = loc_globaldata[itm]
+        else
+            globaldata_itm = loc_ghost_holder[1][itm]
+        end
         x_k = globaldata_itm.x
         y_k = globaldata_itm.y
 

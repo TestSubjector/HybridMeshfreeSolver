@@ -1,10 +1,10 @@
 import SpecialFunctions
 function func_delta(loc_globaldata, globaldata, loc_ghost_holder, configData, numPoints)
     cfl = configData["core"]["cfl"]::Float64
-    # updateLocalGhost(loc_ghostholder, globaldata)
+    updateLocalGhost(loc_ghost_holder, globaldata)
     dist_length = length(loc_globaldata)
     # reduction = dist_length * (myid() - 2)
-    for (idx, store) in enumerate(loc_globaldata)
+    for (idx, _) in enumerate(loc_globaldata)
         # TODO - Possible problem?
         # print(" ", idx," ")
 
@@ -13,7 +13,7 @@ function func_delta(loc_globaldata, globaldata, loc_ghost_holder, configData, nu
             if itm <= dist_length
                 globaldata_itm = loc_globaldata[itm]
             else
-                globaldata_itm = globaldata[loc_ghost_holder[1][itm]]
+                globaldata_itm = loc_ghost_holder[1][itm]
             end
             x_i = loc_globaldata[idx].x
             y_i = loc_globaldata[idx].y
