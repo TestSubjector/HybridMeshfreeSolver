@@ -171,6 +171,12 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, configData, res_old, nu
 
     @sync for ip in procs(dist_globaldata)
         @spawnat ip begin
+            updateLocalGhost(ghost_holder[:L], dist_globaldata)
+        end
+    end
+
+    @sync for ip in procs(dist_globaldata)
+        @spawnat ip begin
             # println(length(localpart(globaldata)))
             func_delta(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], configData, numPoints)
         end
@@ -188,6 +194,12 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, configData, res_old, nu
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
+                updateLocalGhost(ghost_holder[:L], dist_globaldata)
+            end
+        end
+
+        @sync for ip in procs(dist_globaldata)
+            @spawnat ip begin
                 q_var_derivatives(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], configData)
             end
         end
@@ -195,6 +207,13 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, configData, res_old, nu
     #    # if iter == 1
     #        # println("Starting Calflux")
     #    # end
+
+        @sync for ip in procs(dist_globaldata)
+            @spawnat ip begin
+                updateLocalGhost(ghost_holder[:L], dist_globaldata)
+            end
+        end
+
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
                 cal_flux_residual(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], configData)
@@ -245,7 +264,6 @@ function q_var_derivatives(loc_globaldata, globaldata, loc_ghost_holder, configD
     sum_dely_delq = zeros(Float64, 4)
     dist_length = length(loc_globaldata)
     power::Float64 = configData["core"]["power"]
-    updateLocalGhost(loc_ghost_holder, globaldata)
 
     for (idx, itm) in enumerate(loc_globaldata)
         x_i = itm.x

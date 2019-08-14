@@ -1,7 +1,7 @@
 import SpecialFunctions
 function func_delta(loc_globaldata, globaldata, loc_ghost_holder, configData, numPoints)
     cfl = configData["core"]["cfl"]::Float64
-    updateLocalGhost(loc_ghost_holder, globaldata)
+    # updateLocalGhost(loc_ghost_holder, globaldata)
     dist_length = length(loc_globaldata)
     # reduction = dist_length * (myid() - 2)
     for (idx, _) in enumerate(loc_globaldata)
