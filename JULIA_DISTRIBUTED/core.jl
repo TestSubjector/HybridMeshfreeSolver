@@ -182,6 +182,12 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, configData, res_old, nu
     #    # end
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
+                q_variables(dist_globaldata[:L], dist_globaldata, ghost_holder[:L])
+            end
+        end
+
+        @sync for ip in procs(dist_globaldata)
+            @spawnat ip begin
                 q_var_derivatives(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], configData)
             end
         end
@@ -212,9 +218,7 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, configData, res_old, nu
     return nothing
 end
 
-function q_var_derivatives(loc_globaldata, globaldata, loc_ghost_holder, configData)
-    power::Float64 = configData["core"]["power"]
-
+function q_variables(loc_globaldata, globaldata, loc_ghost_holder)
     for (idx, itm) in enumerate(loc_globaldata)
         rho = itm.prim[1]
         u1 = itm.prim[2]
@@ -233,11 +237,16 @@ function q_var_derivatives(loc_globaldata, globaldata, loc_ghost_holder, configD
 
     end
     # println(IOContext(stdout, :compact => false), globaldata[3].q)
+    return nothing
+end
+
+function q_var_derivatives(loc_globaldata, globaldata, loc_ghost_holder, configData)
     sum_delx_delq = zeros(Float64, 4)
     sum_dely_delq = zeros(Float64, 4)
     dist_length = length(loc_globaldata)
-
+    power::Float64 = configData["core"]["power"]
     updateLocalGhost(loc_ghost_holder, globaldata)
+
     for (idx, itm) in enumerate(loc_globaldata)
         x_i = itm.x
         y_i = itm.y
