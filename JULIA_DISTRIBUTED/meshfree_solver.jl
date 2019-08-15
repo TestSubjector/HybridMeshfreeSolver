@@ -17,8 +17,12 @@ function main()
     # print(splitdata[1:3])
     defprimal = getInitialPrimitive(configData)
 
-    local_points_holder = Array{Array{Point,1},1}(undef, nworkers())
+    # local_points_holder = Array{Array{Point,1},1}(undef, nworkers())
     ghost_holder = Array{Dict{Int64,Point},1}(undef, nworkers())
+    # q_ghost_holder = Array{Dict{Int64,TempQ},1}(undef, nworkers())
+    # dq_ghost_holder = Array{Dict{Int64,TempDQ},1}(undef, nworkers())
+    # prim_ghost_holder = Array{Dict{Int64,TempPrim},1}(undef, nworkers())
+
     global_local_map_index = Dict{Tuple{Float64, Float64},Int64}()
     global_local_direct_index = Array{Int64, 1}(undef, numPoints)
     println("Indexing")
@@ -31,12 +35,19 @@ function main()
     # readFile(file_name::String, globaldata, table, defprimal, wallptsidx, outerptsidx, Interiorptsidx, shapeptsidx,
         # wallpts, Interiorpts, outerpts, shapepts, numPoints)
 
-    # println("Read Local Files")
-    ras = [@spawnat p readDistribuedFile(folder_name::String, local_points_holder, defprimal, p, global_local_map_index) for p in workers()]
-    rasa = reshape(ras, (nworkers()))
-    # println(fetch(rasa[3]))
-    dist_globaldata = DArray(rasa)
+    println("Read Local Files")
+    # readDistribuedFile(folder_name::String, defprimal, 2, global_local_map_index)
+    globaldata_parts = [@spawnat p readDistribuedFile(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
+    globaldata_parts = reshape(globaldata_parts, (nworkers()))
+    dist_globaldata = DArray(globaldata_parts)
 
+    q_parts = [@spawnat p readDistribuedFileQ(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
+    q_parts = reshape(q_parts, (nworkers()))
+    dist_q = DArray(q_parts)
+
+    dq_parts = [@spawnat p readDistribuedFileDQ(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
+    dq_parts = reshape(dq_parts, (nworkers()))
+    dist_dq = DArray(dq_parts)
 
     println("Reading Ghost")
     readGhostFile(folder_name, ghost_holder, global_local_map_index, dist_globaldata)
@@ -93,16 +104,16 @@ function main()
     # println("Size is: ", length(globaldata))
 
     println(Int(getConfig()["core"]["max_iters"]) + 1)
-    function run_code(ghost_holder, dist_globaldata, configData, res_old, numPoints)
+    function run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
         for i in 1:(Int(getConfig()["core"]["max_iters"]))
-            fpi_solver(i, ghost_holder, dist_globaldata, configData, res_old, numPoints)
+            fpi_solver(i, ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
         end
     end
 
     res_old = zeros(Float64, 1)
-    function test_code(ghost_holder, dist_globaldata, configData, res_old, numPoints)
+    function test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
         println("! Starting warmup function")
-        fpi_solver(1, ghost_holder, dist_globaldata, configData, res_old, numPoints)
+        fpi_solver(1, ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
         res_old[1] = 0.0
         # Profile.clear_malloc_data()
         # @trace(fpi_solver(1, globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old), maxdepth = 3)
@@ -113,12 +124,12 @@ function main()
         # res_old[1] = 0.0
         println("! Starting main function")
         @timeit to "nest 4" begin
-            run_code(ghost_holder, dist_globaldata, configData, res_old, numPoints)
+            run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
         end
     end
 
 
-    test_code(ghost_holder, dist_globaldata, configData, res_old, numPoints)
+    test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
     println("! Work Completed")
     # # println(to)
     open("results/timer" * string(numPoints) * "_" * string(getConfig()["core"]["max_iters"]) *
@@ -160,7 +171,7 @@ function main()
     # println(globaldata[1])
 
     file = open("results/primvals" * string(numPoints) * ".txt", "w")
-    @showporgress 1 "This takes time" for (idx, _) in enumerate(dist_globaldata)
+    @showprogress 1 "This takes time" for (idx, _) in enumerate(dist_globaldata)
         primtowrite = dist_globaldata[global_local_direct_index[idx]].prim
         for element in primtowrite
             @printf(file,"%0.17f", element)
@@ -170,5 +181,7 @@ function main()
     end
     close(file)
     close(ghost_holder)
+    close(dist_dq)
+    close(dist_q)
     close(dist_globaldata)
 end

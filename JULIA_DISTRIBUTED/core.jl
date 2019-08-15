@@ -21,21 +21,41 @@ end
     return nothing
 end
 
-@inline function update_ghost_q_variables(ghost_point)
-    rho = ghost_point.prim[1]
-    u1 = ghost_point.prim[2]
-    u2 = ghost_point.prim[3]
-    pr = ghost_point.prim[4]
-
-    beta = 0.5 * (rho / pr)
-    ghost_point.q[1] = log(rho) + log(beta) * 2.5 - (beta * ((u1 * u1) + (u2 * u2)))
-    two_times_beta = 2.0 * beta
-
-    ghost_point.q[2] = (two_times_beta * u1)
-    ghost_point.q[3] = (two_times_beta * u2)
-    ghost_point.q[4] = -two_times_beta
+@inline function updateLocalGhostQ(loc_ghost_holder, dist_q)
+    localkeys = keys(loc_ghost_holder[1])
+    # println(localkeys)
+    for iter in localkeys
+        #Dict To Array Equality
+        loc_ghost_holder[1][iter].q = dist_q[loc_ghost_holder[1][iter].globalID].q
+    end
     return nothing
 end
+
+@inline function updateLocalGhostDQ(loc_ghost_holder, dist_dq)
+    localkeys = keys(loc_ghost_holder[1])
+    # println(localkeys)
+    for iter in localkeys
+        #Dict To Array Equality
+        loc_ghost_holder[1][iter].dq = dist_dq[loc_ghost_holder[1][iter].globalID].dq
+    end
+    return nothing
+end
+
+# @inline function update_ghost_q_variables(ghost_point)
+#     rho = ghost_point.prim[1]
+#     u1 = ghost_point.prim[2]
+#     u2 = ghost_point.prim[3]
+#     pr = ghost_point.prim[4]
+
+#     beta = 0.5 * (rho / pr)
+#     ghost_point.q[1] = log(rho) + log(beta) * 2.5 - (beta * ((u1 * u1) + (u2 * u2)))
+#     two_times_beta = 2.0 * beta
+
+#     ghost_point.q[2] = (two_times_beta * u1)
+#     ghost_point.q[3] = (two_times_beta * u2)
+#     ghost_point.q[4] = -two_times_beta
+#     return nothing
+# end
 
 # function updateLocalGhostNew(loc_ghost_holder, dist_globaldata)
 #     localkeys = keys(loc_ghost_holder[1])
@@ -80,6 +100,13 @@ function getInitialPrimitive2(configData)
     end
     close(dataman)
     return finaldata
+end
+
+function matchInitialQ(loc_q, loc_globaldata)
+    local_size = length(loc_q)
+    for idx in 1:local_size
+        loc_q[idx].q = loc_globaldata[idx].q
+    end
 end
 
 function placeNormals(loc_globaldata, globaldata, loc_ghost_holder, interior, wall, outer)
@@ -198,7 +225,7 @@ function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
     return nothing
 end
 
-function fpi_solver(iter, ghost_holder, dist_globaldata, configData, res_old, numPoints)
+function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # print(" 111\n")
     if iter == 1
@@ -231,19 +258,19 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, configData, res_old, nu
     #    # end
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                q_variables(dist_globaldata[:L], dist_globaldata, ghost_holder[:L])
+                q_variables(dist_globaldata[:L], dist_globaldata, dist_q[:L])
             end
         end
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                updateLocalGhost(ghost_holder[:L], dist_globaldata)
+                updateLocalGhostQ(ghost_holder[:L], dist_q)
             end
         end
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                q_var_derivatives(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], configData)
+                q_var_derivatives(dist_globaldata[:L], dist_globaldata, dist_dq[:L], ghost_holder[:L], configData)
             end
         end
         # println(IOContext(stdout, :compact => false), dist_globaldata[3])
@@ -253,7 +280,7 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, configData, res_old, nu
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                updateLocalGhost(ghost_holder[:L], dist_globaldata)
+                updateLocalGhostDQ(ghost_holder[:L], dist_dq)
             end
         end
 
@@ -280,7 +307,7 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, configData, res_old, nu
     return nothing
 end
 
-@inline function q_variables(loc_globaldata, globaldata, loc_ghost_holder)
+@inline function q_variables(loc_globaldata, globaldata, loc_q)
     for (idx, itm) in enumerate(loc_globaldata)
         rho = itm.prim[1]
         u1 = itm.prim[2]
@@ -294,12 +321,12 @@ end
         loc_globaldata[idx].q[2] = (two_times_beta * u1)
         loc_globaldata[idx].q[3] = (two_times_beta * u2)
         loc_globaldata[idx].q[4] = -two_times_beta
-
+        loc_q[idx].q = loc_globaldata[idx].q
     end
     return nothing
 end
 
-function q_var_derivatives(loc_globaldata, globaldata, loc_ghost_holder, configData)
+function q_var_derivatives(loc_globaldata, globaldata, loc_dq, loc_ghost_holder, configData)
     sum_delx_delq = zeros(Float64, 4)
     sum_dely_delq = zeros(Float64, 4)
     dist_length = length(loc_globaldata)
@@ -349,6 +376,8 @@ function q_var_derivatives(loc_globaldata, globaldata, loc_ghost_holder, configD
         one_by_det = 1.0 / det
         loc_globaldata[idx].dq[1] = @. one_by_det * (sum_delx_delq * sum_dely_sqr - sum_dely_delq * sum_delx_dely)
         loc_globaldata[idx].dq[2] = @. one_by_det * (sum_dely_delq * sum_delx_sqr - sum_delx_delq * sum_delx_dely)
+        loc_dq[idx].dq[1] = loc_globaldata[idx].dq[1]
+        loc_dq[idx].dq[2] = loc_globaldata[idx].dq[2]
         # globaldata[idx].dq = [tempsumx, tempsumy]
     end
     # println(IOContext(stdout, :compact => false), globaldata[3].dq)

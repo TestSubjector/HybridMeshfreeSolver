@@ -57,7 +57,17 @@ mutable struct Point
     globalID::Int64
 end
 
+mutable struct TempQ
+    q::Array{Float64,1}
+end
 
+mutable struct TempDQ
+    dq::Array{Array{Float64,1},1}
+end
+
+mutable struct TempPrim
+    prim::Array{Float64,1}
+end
 
 # using PyCall
 
