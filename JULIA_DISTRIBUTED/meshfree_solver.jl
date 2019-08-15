@@ -160,7 +160,7 @@ function main()
     # println(globaldata[1])
 
     file = open("results/primvals" * string(numPoints) * ".txt", "w")
-    for (idx, _) in enumerate(dist_globaldata)
+    @showporgress 1 "This takes time" for (idx, _) in enumerate(dist_globaldata)
         primtowrite = dist_globaldata[global_local_direct_index[idx]].prim
         for element in primtowrite
             @printf(file,"%0.17f", element)

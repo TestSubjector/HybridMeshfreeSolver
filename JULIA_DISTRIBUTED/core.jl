@@ -11,14 +11,51 @@ function check_leaks()
     end
 end
 
-function updateLocalGhost(loc_ghost_holder, dist_globaldata)
+@inline function updateLocalGhost(loc_ghost_holder, dist_globaldata)
     localkeys = keys(loc_ghost_holder[1])
     # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
         loc_ghost_holder[1][iter] = dist_globaldata[loc_ghost_holder[1][iter].globalID]
     end
+    return nothing
 end
+
+@inline function update_ghost_q_variables(ghost_point)
+    rho = ghost_point.prim[1]
+    u1 = ghost_point.prim[2]
+    u2 = ghost_point.prim[3]
+    pr = ghost_point.prim[4]
+
+    beta = 0.5 * (rho / pr)
+    ghost_point.q[1] = log(rho) + log(beta) * 2.5 - (beta * ((u1 * u1) + (u2 * u2)))
+    two_times_beta = 2.0 * beta
+
+    ghost_point.q[2] = (two_times_beta * u1)
+    ghost_point.q[3] = (two_times_beta * u2)
+    ghost_point.q[4] = -two_times_beta
+    return nothing
+end
+
+# function updateLocalGhostNew(loc_ghost_holder, dist_globaldata)
+#     localkeys = keys(loc_ghost_holder[1])
+#     # println(localkeys)
+#     for iter in localkeys
+#         #Dict To Array Equality
+#         loc_ghost_holder[1][iter].prim = dist_globaldata[loc_ghost_holder[1][iter].globalID].prim
+#         loc_ghost_holder[1][iter].q = dist_globaldata[loc_ghost_holder[1][iter].globalID].q
+#     end
+#     return nothing
+# end
+
+# function updateGhost(ghost_holder, dist_globaldata)
+#     for i in 1:nworkers()
+#         localkeys = keys(ghost_holder[i])
+#         for iter in localkeys
+#             ghost_holder[i][iter] = dist_globaldata[ghost_holder[i][iter].globalID]
+#         end
+#     end
+# end
 
 function getInitialPrimitive(configData)
     rho_inf = configData["core"]["rho_inf"]::Float64
@@ -182,6 +219,12 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, configData, res_old, nu
         end
     end
 
+    # @sync for ip in procs(dist_globaldata)
+    #     @spawnat ip begin
+    #         updateLocalGhost(ghost_holder[:L], dist_globaldata)
+    #     end
+    # end
+
     for rk in 1:4
     #    # if iter == 1
     #        # println("Starting QVar")
@@ -225,11 +268,11 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, configData, res_old, nu
     #    # if iter == 1
     #        # println("Starting StateUpdate")
     #    # end
-       @sync for ip in procs(dist_globaldata)
-           @spawnat ip begin
-               state_update(dist_globaldata[:L], dist_globaldata, configData, iter, res_old, rk, numPoints)
-           end
-       end
+        @sync for ip in procs(dist_globaldata)
+            @spawnat ip begin
+                state_update(dist_globaldata[:L], dist_globaldata, configData, iter, res_old, rk, numPoints)
+            end
+        end
     end
     println("Iteration Number ", iter, " ")
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
@@ -237,25 +280,22 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, configData, res_old, nu
     return nothing
 end
 
-function q_variables(loc_globaldata, globaldata, loc_ghost_holder)
+@inline function q_variables(loc_globaldata, globaldata, loc_ghost_holder)
     for (idx, itm) in enumerate(loc_globaldata)
         rho = itm.prim[1]
         u1 = itm.prim[2]
         u2 = itm.prim[3]
         pr = itm.prim[4]
 
-        beta::Float64 = 0.5 * (rho / pr)
+        beta = 0.5 * (rho / pr)
         loc_globaldata[idx].q[1] = log(rho) + log(beta) * 2.5 - (beta * ((u1 * u1) + (u2 * u2)))
         two_times_beta = 2.0 * beta
-        # if idx == 1
-        #     println(globaldata[idx].q[1])
-        # end
+
         loc_globaldata[idx].q[2] = (two_times_beta * u1)
         loc_globaldata[idx].q[3] = (two_times_beta * u2)
         loc_globaldata[idx].q[4] = -two_times_beta
 
     end
-    # println(IOContext(stdout, :compact => false), globaldata[3].q)
     return nothing
 end
 
@@ -281,6 +321,7 @@ function q_var_derivatives(loc_globaldata, globaldata, loc_ghost_holder, configD
             if conn <= dist_length
                 globaldata_conn = loc_globaldata[conn]
             else
+                # update_ghost_q_variables(loc_ghost_holder[1][conn])
                 globaldata_conn = loc_ghost_holder[1][conn]
             end
             x_k = globaldata_conn.x
