@@ -186,15 +186,15 @@ function interior_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_len
         #        end
         #    end
         #end
-        if qtilde_i[4] > 0
-            println("This is i ", idx," ", itm)
-        end
-        if qtilde_k[4] > 0
-            println("This is k ", idx," ", itm)
-            println(loc_globaldata[idx])
-            println(globaldata_itm)
-            println(qtilde_k)
-        end
+        # if qtilde_i[4] > 0
+        #     println("This is i ", idx," ", itm)
+        # end
+        # if qtilde_k[4] > 0
+        #     println("This is k ", idx," ", itm)
+        #     println(loc_globaldata[idx])
+        #     println(globaldata_itm)
+        #     println(qtilde_k)
+        # end
         qtilde_to_primitive(result, qtilde_i, configData)
         flux_Gxn(G_i, nx, ny, result[1], result[2], result[3], result[4])
 

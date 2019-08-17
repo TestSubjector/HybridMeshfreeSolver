@@ -10,7 +10,7 @@ function cal_flux_residual(loc_globaldata, globaldata, loc_ghost_holder, configD
 
 	# updateLocalGhost(loc_ghost_holder, globaldata)
 
-	for (idx, _) in enumerate(loc_globaldata)
+	for idx in 1:dist_length
 		if loc_globaldata[idx].flag_1 == 0
 			wallindices_flux_residual(loc_globaldata, globaldata, loc_ghost_holder, dist_length, configData, idx, phi_i, phi_k)
 		elseif loc_globaldata[idx].flag_1 == 2

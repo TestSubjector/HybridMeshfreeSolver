@@ -3,8 +3,8 @@ function main()
     configData = getConfig()
     wallpts, Interiorpts, outerpts, shapepts = 0,0,0,0
 
-    file_name = string(ARGS[1])
-    folder_name = string(ARGS[2])
+    file_name = string(ARGS[2])
+    folder_name = string(ARGS[3])
 
     numPoints = returnFileLength(file_name)
     println(numPoints)
@@ -36,7 +36,7 @@ function main()
         # wallpts, Interiorpts, outerpts, shapepts, numPoints)
 
     println("Read Local Files")
-    # readDistribuedFile(folder_name::String, defprimal, 2, global_local_map_index)
+    # readDistribuedFile(folder_name::String, defprimal, 12, global_local_map_index)
     globaldata_parts = [@spawnat p readDistribuedFile(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
     globaldata_parts = reshape(globaldata_parts, (nworkers()))
     dist_globaldata = DArray(globaldata_parts)
@@ -170,16 +170,16 @@ function main()
     # println(IOContext(stdout, :compact => false), globaldata[100].yneg_conn)
     # println(globaldata[1])
 
-    file = open("results/primvals" * string(numPoints) * ".txt", "w")
-    @showprogress 1 "This takes time" for (idx, _) in enumerate(dist_globaldata)
-        primtowrite = dist_globaldata[global_local_direct_index[idx]].prim
-        for element in primtowrite
-            @printf(file,"%0.17f", element)
-            @printf(file, " ")
-        end
-        print(file, "\n")
-    end
-    close(file)
+    # file = open("results/primvals" * string(numPoints) * ".txt", "w")
+    # @showprogress 1 "This takes time" for (idx, _) in enumerate(dist_globaldata)
+    #     primtowrite = dist_globaldata[global_local_direct_index[idx]].prim
+    #     for element in primtowrite
+    #         @printf(file,"%0.17f", element)
+    #         @printf(file, " ")
+    #     end
+    #     print(file, "\n")
+    # end
+    # close(file)
     close(ghost_holder)
     close(dist_dq)
     close(dist_q)

@@ -4,7 +4,7 @@ function func_delta(loc_globaldata, globaldata, loc_ghost_holder, configData, nu
     # updateLocalGhost(loc_ghost_holder, globaldata)
     dist_length = length(loc_globaldata)
     # reduction = dist_length * (myid() - 2)
-    for (idx, _) in enumerate(loc_globaldata)
+    for idx in 1:dist_length
         # TODO - Possible problem?
         # print(" ", idx," ")
 

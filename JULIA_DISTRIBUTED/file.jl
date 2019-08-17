@@ -7,7 +7,15 @@ end
 function createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, folder_name::String)
     index_flag = 1
     for iter in 1:length(workers())
-        filename = folder_name * "/" * "partGrid000" * string(iter-1)
+        if iter - 1 < 10
+            filename = folder_name * "/" * "partGrid000" * string(iter-1)
+        elseif iter - 1 < 100
+            filename = folder_name * "/" * "partGrid00" * string(iter-1)
+        elseif iter - 1 < 1000
+            filename = folder_name * "/" * "partGrid0" * string(iter-1)
+        else
+            filename = folder_name * "/" * "partGrid" * string(iter-1)
+        end
         data = read(filename, String)
         splitdata = @view split(data, "\n")[1:end-1]
         itmdata = split(splitdata[1], " ")
@@ -29,7 +37,15 @@ end
 function readGhostFile(folder_name::String, ghost_holder, global_local_map_index, dist_globaldata)
     # println(ghost_folder_name)
     for iter in 1:length(workers())
-        filename = folder_name * "/" * "partGrid000" * string(iter-1)
+        if iter - 1 < 10
+            filename = folder_name * "/" * "partGrid000" * string(iter-1)
+        elseif iter - 1 < 100
+            filename = folder_name * "/" * "partGrid00" * string(iter-1)
+        elseif iter - 1 < 1000
+            filename = folder_name * "/" * "partGrid0" * string(iter-1)
+        else
+            filename = folder_name * "/" * "partGrid" * string(iter-1)
+        end
         println(filename)
         data = read(filename, String)
         splitdata = @view split(data, "\n")[1:end-1]
@@ -51,7 +67,15 @@ function readDistribuedFile(folder_name::String, defprimal, p, global_local_map_
     println("Reading multiple files")
     println(folder_name)
     iter = p - 1
-    filename = folder_name * "/" * "partGrid000" * string(iter-1)
+    if iter - 1 < 10
+        filename = folder_name * "/" * "partGrid000" * string(iter-1)
+    elseif iter - 1 < 100
+        filename = folder_name * "/" * "partGrid00" * string(iter-1)
+    elseif iter - 1 < 1000
+        filename = folder_name * "/" * "partGrid0" * string(iter-1)
+    else
+        filename = folder_name * "/" * "partGrid" * string(iter-1)
+    end
     println(filename)
     data = read(filename, String)
     splitdata = @view split(data, "\n")[1:end-1]
@@ -65,26 +89,26 @@ function readDistribuedFile(folder_name::String, defprimal, p, global_local_map_
         elseif idx <= local_point_count + 1
             itmdata = split(itm, " ")
             globalID = global_local_map_index[(parse(Float64,itmdata[2]), parse(Float64, itmdata[3]))]
-            if iter == 1
-                local_points_holder[idx-1] = Point(parse(Int,itmdata[1]),
-                    parse(Float64,itmdata[2]),
-                    parse(Float64, itmdata[3]),
-                    parse(Int, itmdata[4]),
-                    parse(Int, itmdata[5]),
-                    parse(Int8,itmdata[6]),
-                    parse(Int8,itmdata[7]),
-                    parse(Float64,itmdata[8]),
-                    parse(Int8,itmdata[9]),
-                    parse.(Int, itmdata[10:end]),
-                    0.0,
-                    0.0,
-                    copy(defprimal),
-                    zeros(Float64, 4),
-                    zeros(Float64, 4),
-                    Array{Array{Float64,1},1}(undef, 2), 0.0, 0, 0, 0, 0, Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0),
-                    Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0), 0.0, zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4),
-                    globalID)
-            else
+            # if iter == 1
+            #     local_points_holder[idx-1] = Point(parse(Int,itmdata[1]),
+            #         parse(Float64,itmdata[2]),
+            #         parse(Float64, itmdata[3]),
+            #         parse(Int, itmdata[4]),
+            #         parse(Int, itmdata[5]),
+            #         parse(Int8,itmdata[6]),
+            #         parse(Int8,itmdata[7]),
+            #         parse(Float64,itmdata[8]),
+            #         parse(Int8,itmdata[9]),
+            #         parse.(Int, itmdata[10:end]),
+            #         0.0,
+            #         0.0,
+            #         copy(defprimal),
+            #         zeros(Float64, 4),
+            #         zeros(Float64, 4),
+            #         Array{Array{Float64,1},1}(undef, 2), 0.0, 0, 0, 0, 0, Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0),
+            #         Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0), 0.0, zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4),
+            #         globalID)
+            # else
                 local_points_holder[idx-1] = Point(parse(Int,itmdata[1]),
                     parse(Float64,itmdata[2]),
                     parse(Float64, itmdata[3]),
@@ -103,7 +127,7 @@ function readDistribuedFile(folder_name::String, defprimal, p, global_local_map_
                     Array{Array{Float64,1},1}(undef, 2), 0.0, 0, 0, 0, 0, Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0),
                     Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0), 0.0, zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4),
                     globalID)
-            end
+            # end
         end
     end
     return local_points_holder
@@ -111,9 +135,17 @@ end
 
 function readDistribuedFileQ(folder_name::String, defprimal, p, global_local_map_index)
     println("Reading multiple files for Q")
-    println(folder_name)
+    # println(folder_name)
     iter = p - 1
-    filename = folder_name * "/" * "partGrid000" * string(iter-1)
+    if iter - 1 < 10
+        filename = folder_name * "/" * "partGrid000" * string(iter-1)
+    elseif iter - 1 < 100
+        filename = folder_name * "/" * "partGrid00" * string(iter-1)
+    elseif iter - 1 < 1000
+        filename = folder_name * "/" * "partGrid0" * string(iter-1)
+    else
+        filename = folder_name * "/" * "partGrid" * string(iter-1)
+    end
     # println(filename)
     data = read(filename, String)
     splitdata = @view split(data, "\n")[1:end-1]
@@ -135,9 +167,17 @@ end
 
 function readDistribuedFileDQ(folder_name::String, defprimal, p, global_local_map_index)
     println("Reading multiple files for DQ")
-    println(folder_name)
+    # println(folder_name)
     iter = p - 1
-    filename = folder_name * "/" * "partGrid000" * string(iter-1)
+    if iter - 1 < 10
+        filename = folder_name * "/" * "partGrid000" * string(iter-1)
+    elseif iter - 1 < 100
+        filename = folder_name * "/" * "partGrid00" * string(iter-1)
+    elseif iter - 1 < 1000
+        filename = folder_name * "/" * "partGrid0" * string(iter-1)
+    else
+        filename = folder_name * "/" * "partGrid" * string(iter-1)
+    end
     # println(filename)
     data = read(filename, String)
     splitdata = @view split(data, "\n")[1:end-1]

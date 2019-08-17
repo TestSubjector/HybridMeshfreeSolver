@@ -185,9 +185,6 @@ function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
         ty = -nx
 
         for itm in ptInterest.conn
-            if itm == 8106
-                println(loc_globaldata[idx])
-            end
             if itm <= local_size
                 itmx = loc_globaldata[itm].x
                 itmy = loc_globaldata[itm].y
