@@ -26,7 +26,7 @@ end
     # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
-        loc_ghost_holder[1][iter].q = dist_q[loc_ghost_holder[1][iter].globalID].q
+        @. loc_ghost_holder[1][iter].q = dist_q[loc_ghost_holder[1][iter].globalID].q
     end
     return nothing
 end
@@ -36,46 +36,10 @@ end
     # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
-        loc_ghost_holder[1][iter].dq = dist_dq[loc_ghost_holder[1][iter].globalID].dq
+        @. loc_ghost_holder[1][iter].dq = dist_dq[loc_ghost_holder[1][iter].globalID].dq
     end
     return nothing
 end
-
-# @inline function update_ghost_q_variables(ghost_point)
-#     rho = ghost_point.prim[1]
-#     u1 = ghost_point.prim[2]
-#     u2 = ghost_point.prim[3]
-#     pr = ghost_point.prim[4]
-
-#     beta = 0.5 * (rho / pr)
-#     ghost_point.q[1] = log(rho) + log(beta) * 2.5 - (beta * ((u1 * u1) + (u2 * u2)))
-#     two_times_beta = 2.0 * beta
-
-#     ghost_point.q[2] = (two_times_beta * u1)
-#     ghost_point.q[3] = (two_times_beta * u2)
-#     ghost_point.q[4] = -two_times_beta
-#     return nothing
-# end
-
-# function updateLocalGhostNew(loc_ghost_holder, dist_globaldata)
-#     localkeys = keys(loc_ghost_holder[1])
-#     # println(localkeys)
-#     for iter in localkeys
-#         #Dict To Array Equality
-#         loc_ghost_holder[1][iter].prim = dist_globaldata[loc_ghost_holder[1][iter].globalID].prim
-#         loc_ghost_holder[1][iter].q = dist_globaldata[loc_ghost_holder[1][iter].globalID].q
-#     end
-#     return nothing
-# end
-
-# function updateGhost(ghost_holder, dist_globaldata)
-#     for i in 1:nworkers()
-#         localkeys = keys(ghost_holder[i])
-#         for iter in localkeys
-#             ghost_holder[i][iter] = dist_globaldata[ghost_holder[i][iter].globalID]
-#         end
-#     end
-# end
 
 function getInitialPrimitive(configData)
     rho_inf = configData["core"]["rho_inf"]::Float64
@@ -298,7 +262,8 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_dq, config
             end
         end
     end
-    println("Iteration Number ", iter, " ")
+    
+    println("Iteration Number ", iter, " ", res_old)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # residue = res_old
     return nothing
@@ -382,3 +347,39 @@ function q_var_derivatives(loc_globaldata, globaldata, loc_dq, loc_ghost_holder,
     # println(IOContext(stdout, :compact => false), globaldata[3].min_q)
     return nothing
 end
+
+# @inline function update_ghost_q_variables(ghost_point)
+#     rho = ghost_point.prim[1]
+#     u1 = ghost_point.prim[2]
+#     u2 = ghost_point.prim[3]
+#     pr = ghost_point.prim[4]
+
+#     beta = 0.5 * (rho / pr)
+#     ghost_point.q[1] = log(rho) + log(beta) * 2.5 - (beta * ((u1 * u1) + (u2 * u2)))
+#     two_times_beta = 2.0 * beta
+
+#     ghost_point.q[2] = (two_times_beta * u1)
+#     ghost_point.q[3] = (two_times_beta * u2)
+#     ghost_point.q[4] = -two_times_beta
+#     return nothing
+# end
+
+# function updateLocalGhostNew(loc_ghost_holder, dist_globaldata)
+#     localkeys = keys(loc_ghost_holder[1])
+#     # println(localkeys)
+#     for iter in localkeys
+#         #Dict To Array Equality
+#         loc_ghost_holder[1][iter].prim = dist_globaldata[loc_ghost_holder[1][iter].globalID].prim
+#         loc_ghost_holder[1][iter].q = dist_globaldata[loc_ghost_holder[1][iter].globalID].q
+#     end
+#     return nothing
+# end
+
+# function updateGhost(ghost_holder, dist_globaldata)
+#     for i in 1:nworkers()
+#         localkeys = keys(ghost_holder[i])
+#         for iter in localkeys
+#             ghost_holder[i][iter] = dist_globaldata[ghost_holder[i][iter].globalID]
+#         end
+#     end
+# end

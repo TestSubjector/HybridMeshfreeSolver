@@ -1,6 +1,6 @@
 import SpecialFunctions
-function func_delta(loc_globaldata, globaldata, loc_ghost_holder, configData, numPoints)
-    cfl = configData["core"]["cfl"]::Float64
+function func_delta(loc_globaldata, globaldata, loc_ghost_holder, cfl, numPoints)
+    
     # updateLocalGhost(loc_ghost_holder, globaldata)
     dist_length = length(loc_globaldata)
     # reduction = dist_length * (myid() - 2)
@@ -33,7 +33,7 @@ function func_delta(loc_globaldata, globaldata, loc_ghost_holder, configData, nu
     return nothing
 end
 
-function state_update(loc_globaldata, globaldata, configData, iter, res_old, rk, numPoints)
+function state_update(loc_globaldata, globaldata, Mach, gamma, pr_inf, rho_inf, theta, iter, res_old, rk, numPoints)
     max_res = zero(Float64)
     sum_res_sqr = zeros(Float64, 1)
     U = zeros(Float64, 4)
@@ -46,7 +46,7 @@ function state_update(loc_globaldata, globaldata, configData, iter, res_old, rk,
             state_update_wall(loc_globaldata, itm, max_res, sum_res_sqr, U, Uold, rk)
         elseif loc_globaldata[itm].flag_1 == 2
             fill!(U, 0.0)
-            state_update_outer(loc_globaldata, configData, itm, max_res, sum_res_sqr, U, Uold, rk)
+            state_update_outer(loc_globaldata, Mach, gamma, pr_inf, rho_inf, theta, itm, max_res, sum_res_sqr, U, Uold, rk)
         elseif loc_globaldata[itm].flag_1 == 1
             fill!(U, 0.0)
             state_update_interior(loc_globaldata, itm, max_res, sum_res_sqr, U, Uold, rk)
@@ -54,15 +54,15 @@ function state_update(loc_globaldata, globaldata, configData, iter, res_old, rk,
     end
     # println(sum_res_sqr[1])
     # println("The length is ", length(globaldata))
-    res_new = sqrt(sum_res_sqr[1])/ length(globaldata)
-    residue = 0
-    # println(res_old)
-    if iter <= 2
-        res_old[1] = res_new
-        residue = 0
-    else
-        residue = log10(res_new/res_old[1])
-    end
+    # res_new = sqrt(sum_res_sqr[1])/ length(globaldata)
+    # residue = 0
+    # # println(res_old)
+    # if iter <= 2
+    #     res_old[1] = res_new
+    #     residue = 0
+    # else
+    #     residue = log10(res_new/res_old[1])
+    # end
     # if rk == 4
     #     print(" ", residue, " ")
     # end
@@ -88,10 +88,10 @@ function state_update_wall(globaldata, itm, max_res, sum_res_sqr, U, Uold, rk)
     #     println(IOContext(stdout, :compact => false), globaldata[1].prim)
     # end
     temp = U[1]
-    U = @. U - (globaldata[itm].delta .* globaldata[itm].flux_res)
+    @. U = U - (globaldata[itm].delta .* globaldata[itm].flux_res)
     if rk == 3
         primitive_to_conserved_old(globaldata, itm, nx, ny, Uold)
-        U = @. U * 1/3 + Uold * 2/3
+        @. U = U * 1/3 + Uold * 2/3
     end
     U[3] = zero(Float64)
     U2_rot = U[2]
@@ -119,15 +119,15 @@ function state_update_wall(globaldata, itm, max_res, sum_res_sqr, U, Uold, rk)
     # end
 end
 
-@inline function state_update_outer(globaldata, configData, itm, max_res, sum_res_sqr, U, Uold, rk)
+@inline function state_update_outer(globaldata, Mach, gamma, pr_inf, rho_inf, theta, itm, max_res, sum_res_sqr, U, Uold, rk)
     nx = globaldata[itm].nx
     ny = globaldata[itm].ny
-    conserved_vector_Ubar(globaldata, itm, nx, ny, configData, U)
+    conserved_vector_Ubar(globaldata, itm, nx, ny, Mach, gamma, pr_inf, rho_inf, theta, U)
     temp = U[1]
-    U = @. U - globaldata[itm].delta * globaldata[itm].flux_res
+    @. U = U - globaldata[itm].delta * globaldata[itm].flux_res
     if rk == 3
-        conserved_vector_Ubar_old(globaldata, itm, nx, ny, configData, Uold)
-        U = @. U * 1/3 + Uold * 2/3
+        conserved_vector_Ubar_old(globaldata, itm, nx, ny, Mach, gamma, pr_inf, rho_inf, theta, Uold)
+        @. U = U * 1/3 + Uold * 2/3
     end
     U2_rot = U[2]
     U3_rot = U[3]
@@ -153,10 +153,10 @@ end
     #     # println(IOContext(stdout, :compact => false), temp)
     # end
     temp = U[1]
-    U = @. U - globaldata[itm].delta .* globaldata[itm].flux_res
+    @. U = U - globaldata[itm].delta .* globaldata[itm].flux_res
     if rk == 3
         primitive_to_conserved_old(globaldata, itm, nx, ny, Uold)
-        U = @. U * 1/3 + Uold * 2/3
+        @. U =U * 1/3 + Uold * 2/3
     end
     U2_rot = U[2]
     U3_rot = U[3]
@@ -219,13 +219,8 @@ end
     # end
 end
 
-@inline function conserved_vector_Ubar(globaldata, itm, nx, ny, configData, Ubar)
-    Mach::Float64 = configData["core"]["mach"]::Float64
-    gamma::Float64 = configData["core"]["gamma"]::Float64
-    pr_inf::Float64 = configData["core"]["pr_inf"]::Float64
-    rho_inf::Float64 = configData["core"]["rho_inf"]::Float64
-    theta = calculateTheta(configData)
-
+@inline function conserved_vector_Ubar(globaldata, itm, nx, ny, Mach, gamma, pr_inf, rho_inf, theta, Ubar)
+    
     u1_inf::Float64 = Mach*cos(theta)
     u2_inf::Float64 = Mach*sin(theta)
 
@@ -273,12 +268,7 @@ end
     Ubar[4] = (temp1 + temp2)
 end
 
-@inline function conserved_vector_Ubar_old(globaldata, itm, nx, ny, configData, Ubar)
-    Mach::Float64 = configData["core"]["mach"]::Float64
-    gamma::Float64 = configData["core"]["gamma"]::Float64
-    pr_inf::Float64 = configData["core"]["pr_inf"]::Float64
-    rho_inf::Float64 = configData["core"]["rho_inf"]::Float64
-    theta = calculateTheta(configData)
+@inline function conserved_vector_Ubar_old(globaldata, itm, nx, ny, Mach, gamma, pr_inf, rho_inf, theta, Ubar)
 
     u1_inf::Float64 = Mach*cos(theta)
     u2_inf::Float64 = Mach*sin(theta)

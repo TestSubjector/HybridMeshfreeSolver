@@ -1,24 +1,24 @@
-function venkat_limiter(qtilde, globaldata, idx, configData, phi)
+function venkat_limiter(qtilde, loc_globaldata, idx, configData, phi)
     # smallest_dist(globaldata, idx)
     VL_CONST = configData["core"]["vl_const"]::Float64
-    ds = globaldata[idx].short_distance
+    ds = loc_globaldata[idx].short_distance
     epsi = VL_CONST * ds
     epsi = epsi ^ 3
     # phi = zeros(Float64, 4)
     del_pos = zero(Float64)
     del_neg = zero(Float64)
     for i in 1:4
-        q = copy(globaldata[idx].q[i])
+        q = copy(loc_globaldata[idx].q[i])
         del_neg = qtilde[i] - q
         if abs(del_neg) <= 1e-5
             phi[i] = 1.0
         elseif abs(del_neg) > 1e-5
             if del_neg > 0.0
                 # maximum(globaldata, idx, i)
-                del_pos = globaldata[idx].max_q[i] - q
+                del_pos = loc_globaldata[idx].max_q[i] - q
             elseif del_neg < 0.0
                 # minimum(globaldata, idx, i)
-                del_pos = globaldata[idx].min_q[i] - q
+                del_pos = loc_globaldata[idx].min_q[i] - q
             end
             num = (del_pos*del_pos) + (epsi*epsi)
             num = (num*del_neg) + 2 * (del_neg*del_neg*del_pos)

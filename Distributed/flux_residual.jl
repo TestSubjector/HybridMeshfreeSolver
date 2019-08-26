@@ -23,31 +23,23 @@ function cal_flux_residual(loc_globaldata, globaldata, loc_ghost_holder, configD
 end
 
 function wallindices_flux_residual(loc_globaldata, globaldata, loc_ghost_holder, dist_length, configData, itm, phi_i, phi_k)
-	# for itm in wallindices
-		# println(itm)
 		Gxp = wall_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
 		Gxn = wall_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
 		Gyn = wall_dGy_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
-		GTemp = @.((Gxp + Gxn + Gyn) * 2)
-		loc_globaldata[itm].flux_res = GTemp
+		@. loc_globaldata[itm].flux_res = (Gxp + Gxn + Gyn) * 2
 		# if itm == 3
 		# 	println(IOContext(stdout, :compact => false), Gxp)
 		# 	println(IOContext(stdout, :compact => false), Gxp + Gxn)
 		# 	println(IOContext(stdout, :compact => false), Gxp + Gxn + Gyn)
 		# end
-	# end
 	return nothing
 end
 
 function outerindices_flux_residual(loc_globaldata, globaldata, loc_ghost_holder, dist_length, configData, itm, phi_i, phi_k)
-	# for itm in outerindices
-		Gxp = outer_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
-		Gxn = outer_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
-		Gyp = outer_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
-		GTemp = @.(Gxp + Gxn + Gyp)
-
-		loc_globaldata[itm].flux_res = GTemp
-	# end
+	Gxp = outer_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
+	Gxn = outer_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
+	Gyp = outer_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
+	@. loc_globaldata[itm].flux_res = Gxp + Gxn + Gyp
 	return nothing
 end
 
@@ -65,8 +57,7 @@ function interiorindices_flux_residual(loc_globaldata, globaldata, loc_ghost_hol
 		# 	println(IOContext(stdout, :compact => false), Gxn + Gxp + Gyp + Gyn)
 		# 	println()
 		# end
-		GTemp = @.(Gxp + Gxn + Gyp + Gyn)
-		loc_globaldata[itm].flux_res = GTemp
+		@. loc_globaldata[itm].flux_res = Gxp + Gxn + Gyp + Gyn
 	# end
 	return nothing
 end

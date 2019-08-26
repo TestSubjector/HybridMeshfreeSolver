@@ -170,16 +170,16 @@ function main()
     # println(IOContext(stdout, :compact => false), globaldata[100].yneg_conn)
     # println(globaldata[1])
 
-    # file = open("results/primvals" * string(numPoints) * ".txt", "w")
-    # @showprogress 1 "This takes time" for (idx, _) in enumerate(dist_globaldata)
-    #     primtowrite = dist_globaldata[global_local_direct_index[idx]].prim
-    #     for element in primtowrite
-    #         @printf(file,"%0.17f", element)
-    #         @printf(file, " ")
-    #     end
-    #     print(file, "\n")
-    # end
-    # close(file)
+    file = open("results/primvals" * string(numPoints) * ".txt", "w")
+    @showprogress 1 "This takes time" for (idx, _) in enumerate(dist_globaldata)
+        primtowrite = dist_globaldata[global_local_direct_index[idx]].prim
+        for element in primtowrite
+            @printf(file,"%0.17f", element)
+            @printf(file, " ")
+        end
+        print(file, "\n")
+    end
+    close(file)
     close(ghost_holder)
     close(dist_dq)
     close(dist_q)
