@@ -8,5 +8,6 @@ println("=== Compiling. ===\n");
 @everywhere using main_module
 println("=== Compiled ===");
 # println(length(workers()))
-testraid()
+# testraid()
+main()
 check_leaks()

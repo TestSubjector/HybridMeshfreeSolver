@@ -26,9 +26,10 @@ function main()
 
     global_local_map_index = Dict{Tuple{Float64, Float64},Int64}()
     global_local_direct_index = Array{Int64, 1}(undef, numPoints)
+    files_length = Array{Int64, 1}(undef, numPoints)
     println("Indexing")
 
-    createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, folder_name::String)
+    createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, folder_name::String, files_length)
     # println(global_local_map_index)
 
     println("Start Read")
@@ -42,11 +43,11 @@ function main()
     globaldata_parts = reshape(globaldata_parts, (nworkers()))
     dist_globaldata = DArray(globaldata_parts)
 
-    q_parts = [@spawnat p readDistribuedFileQ(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
+    q_parts = [@spawnat p readDistribuedFileQ(folder_name::String, defprimal, p, global_local_map_index, files_length) for p in workers()]
     q_parts = reshape(q_parts, (nworkers()))
     dist_q = DArray(q_parts)
 
-    dq_parts = [@spawnat p readDistribuedFileDQ(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
+    dq_parts = [@spawnat p readDistribuedFileDQ(folder_name::String, defprimal, p, global_local_map_index, files_length) for p in workers()]
     dq_parts = reshape(dq_parts, (nworkers()))
     dist_dq = DArray(dq_parts)
 
@@ -90,6 +91,21 @@ function main()
         end
     end
 
+    println("! Transferring FixedData to GPU")
+    @sync for pid in workers()
+        @spawnat pid begin
+            numPoints = files_length[pid-1]
+            locDataFixedPoint = Array{FixedPoint,1}(undef, numPoints)
+            loc_globaldata = dist_globaldata[:L]
+            for idx in 1: numPoints
+                convertToFixedArray(locDataFixedPoint, loc_globaldata[idx], idx, numPoints)
+            end
+            global gpuLocDataFixedPoint = CuArray(locDataFixedPoint)
+            # @cuda changeToOne(cutest)
+            # part_test[:L] = Array(cutest)
+        end
+    end
+
     # println(dist_globaldata[3])
 
     # println(wallptsidx)
@@ -127,13 +143,21 @@ function main()
         end
     end
 
-
     test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
     println("! Work Completed")
     # # println(to)
     open("temp/timer" * string(numPoints) * "_" * string(getConfig()["core"]["max_iters"]) *
         "_" * string(length(workers())) *".txt", "w") do io
         print_timer(io, to)
+    end
+
+    println("! Free GPU")
+    @sync for pid in workers()
+        @spawnat pid begin
+            free = CuArray(gpuLocDataFixedPoint)
+            # @cuda changeToOne(cutest)
+            # part_test[:L] = Array(cutest)
+        end
     end
 
     # t = rmprocs(2, 3, waitfor=0)
@@ -169,7 +193,8 @@ function main()
     # println(IOContext(stdout, :compact => false), globaldata[100].yneg_conn)
     # println(globaldata[1])
 
-    # file = open("results/primvals" * string(numPoints) * ".txt", "w")
+    # file = open("results/primvals"* "_" * string(getConfig()["core"]["max_iters"]) *
+    #  "_" * string(numPoints) * ".txt", "w")
     # @showprogress 1 "This takes time" for (idx, _) in enumerate(dist_globaldata)
     #     primtowrite = dist_globaldata[global_local_direct_index[idx]].prim
     #     for element in primtowrite
@@ -190,14 +215,36 @@ function testraid()
     test_parts = reshape(test, (nworkers()))
     part_test = DArray(test_parts)
     println(part_test)
-    for pid in workers()
-        @sync @spawnat pid begin
-            cutest = CuArray(part_test[:L])
-            println(part_test[:L])
-            @cuda changeToOne(cutest)
-            part_test[:L] = Array(cutest)
+    @timeit to "nest 4" begin
+        @sync for pid in workers()
+            @spawnat pid begin
+                global cutest = CuArray(part_test[:L])
+                # @cuda changeToOne(cutest)
+                # part_test[:L] = Array(cutest)
+            end
+        end
+
+        @sync for pid in workers()
+            @spawnat pid begin
+                # println(part_test[:L])
+                @cuda changeToOne(cutest)
+                # part_test[:L] = Array(cutest)
+            end
+        end
+
+        @sync for pid in workers()
+            @spawnat pid begin
+                # println(part_test[:L])
+                # @cuda changeToOne(cutest)
+                part_test[:L] = Array(cutest)
+            end
         end
     end
+
+
     println(part_test)
+    open("temp/timer_stop.txt", "w") do io
+        print_timer(io, to)
+    end
     close(part_test)
 end

@@ -5,11 +5,12 @@ function workerPrinterCheck()
 end
 
 function returnArrayOne()
-    return [myid()]
+    return [myid(), myid() + 1]
 end
 
 function changeToOne(cutest)
     cutest[1] = 8
+    cutest[2] = 9
     return nothing
 end
 
