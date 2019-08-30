@@ -27,51 +27,24 @@ end
 #     self.short_distance = distance
 # end
 
-function convertToFixedArray(targetArray1, originalStruct::Point, idx, numPoints)
-    if idx == 1
-            targetArray1[idx] = FixedPoint(originalStruct.localID,
-                                            originalStruct.x,
-                                            originalStruct.y,
-                                            numPoints,
-                                            originalStruct.localID + 1,
-                                            originalStruct.flag_1,
-                                            originalStruct.flag_2,
-                                            originalStruct.short_distance,
-                                            originalStruct.nbhs,
-                                            originalStruct.nx,
-                                            originalStruct.ny,
-                                            0.0
-                                                )
-    elseif idx == numPoints
-            targetArray1[idx] = FixedPoint(originalStruct.localID,
-                                            originalStruct.x,
-                                            originalStruct.y,
-                                            originalStruct.localID - 1,
-                                            1,
-                                            originalStruct.flag_1,
-                                            originalStruct.flag_2,
-                                            originalStruct.short_distance,
-                                            originalStruct.nbhs,
-                                            originalStruct.nx,
-                                            originalStruct.ny,
-                                            0.0
-                                                )
-    else
-        targetArray1[idx] = FixedPoint(originalStruct.localID,
-                                            originalStruct.x,
-                                            originalStruct.y,
-                                            originalStruct.localID - 1,
-                                            originalStruct.localID + 1,
-                                            originalStruct.flag_1,
-                                            originalStruct.flag_2,
-                                            originalStruct.short_distance,
-                                            originalStruct.nbhs,
-                                            originalStruct.nx,
-                                            originalStruct.ny,
-                                            0.0
-                                                )
-    end
+function convertToFixedArray(targetArray1, originalStruct::Point, idx)
+    targetArray1[idx] = FixedPoint(originalStruct.localID,
+                                        originalStruct.x,
+                                        originalStruct.y,
+                                        originalStruct.left,
+                                        originalStruct.right,
+                                        originalStruct.flag_1,
+                                        originalStruct.flag_2,
+                                        originalStruct.short_distance,
+                                        originalStruct.nbhs,
+                                        originalStruct.nx,
+                                        originalStruct.ny,
+                                        0.0
+                                    )
+    return nothing
 end
+
+
 
 function convertToNeighbourArray(targetArray2, originalStruct::Point, idx)
     targetArray2[1] = originalStruct.xpos_nbhs
@@ -83,5 +56,5 @@ function convertToNeighbourArray(targetArray2, originalStruct::Point, idx)
     targetArray2[25:24 + originalStruct.xneg_nbhs, idx] = originalStruct.xneg_conn
     targetArray2[35:34 + originalStruct.ypos_nbhs, idx] = originalStruct.ypos_conn
     targetArray2[45:44 + originalStruct.yneg_nbhs, idx] = originalStruct.yneg_conn
-    return  nothing
+    return nothing
 end

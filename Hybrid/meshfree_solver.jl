@@ -19,13 +19,13 @@ function main()
 
     # local_points_holder = Array{Array{Point,1},1}(undef, nworkers())
     # res_old_holder = Array{Float64,1}(undef, nworkers())
-    ghost_holder = Array{Dict{Int64,Point},1}(undef, nworkers())
+    ghost_holder = Array{Dict{Int32,Point},1}(undef, nworkers())
     # q_ghost_holder = Array{Dict{Int64,TempQ},1}(undef, nworkers())
     # dq_ghost_holder = Array{Dict{Int64,TempDQ},1}(undef, nworkers())
     # prim_ghost_holder = Array{Dict{Int64,TempPrim},1}(undef, nworkers())
 
     global_local_map_index = Dict{Tuple{Float64, Float64},Int64}()
-    global_local_direct_index = Array{Int64, 1}(undef, numPoints)
+    global_local_direct_index = Array{Int32, 1}(undef, numPoints)
     files_length = Array{Int64, 1}(undef, numPoints)
     println("Indexing")
 
@@ -97,13 +97,21 @@ function main()
             numPoints = files_length[pid-1]
             locDataFixedPoint = Array{FixedPoint,1}(undef, numPoints)
             locDataConn = zeros(Int32, 55, numPoints)
-            loc_globaldata = dist_globaldata[:L]
+            locGlobalData = dist_globaldata[:L]
             for idx in 1: numPoints
-                convertToFixedArray(locDataFixedPoint, loc_globaldata[idx], idx, numPoints)
-                convertToNeighbourArray(locDataConn, loc_globaldata[idx], idx)
+                convertToFixedArray(locDataFixedPoint, locGlobalData[idx], idx)
+                convertToNeighbourArray(locDataConn, locGlobalData[idx], idx)
+            end
+            locGhostGlobalData = ghost_holder[:L][1]
+            localkeys = keys(locGhostGlobalData)
+            locGhostDataFixedPoint = Array{Dict{Int32,FixedPoint},1}(undef, 1)
+            locGhostDataFixedPoint[1] = Dict{Int32,FixedPoint}()
+            for iter in localkeys
+                convertToFixedArray(locGhostDataFixedPoint[1], locGhostGlobalData[iter], iter)
             end
             global gpuLocDataFixedPoint = CuArray(locDataFixedPoint)
             global gpuLocDataConn = CuArray(locDataConn)
+            global gpuLocGhostDataFixedPoint = CuArray(locGhostDataFixedPoint)
             # @cuda changeToOne(cutest)
             # part_test[:L] = Array(cutest)
         end
@@ -159,6 +167,7 @@ function main()
         @spawnat pid begin
             Array(gpuLocDataFixedPoint)
             Array(gpuLocDataConn)
+            Array(gpuLocGhostDataFixedPoint)
             # @cuda changeToOne(cutest)
             # part_test[:L] = Array(cutest)
         end
@@ -197,17 +206,17 @@ function main()
     # println(IOContext(stdout, :compact => false), globaldata[100].yneg_conn)
     # println(globaldata[1])
 
-    file = open("results/primvals"* "_" * string(getConfig()["core"]["max_iters"]) *
-     "_" * string(numPoints) * ".txt", "w")
-    @showprogress 1 "This takes time" for (idx, _) in enumerate(dist_globaldata)
-        primtowrite = dist_globaldata[global_local_direct_index[idx]].prim
-        for element in primtowrite
-            @printf(file,"%0.17f", element)
-            @printf(file, " ")
-        end
-        print(file, "\n")
-    end
-    close(file)
+    # file = open("results/primvals"* "_" * string(getConfig()["core"]["max_iters"]) *
+    #  "_" * string(numPoints) * ".txt", "w")
+    # @showprogress 1 "This takes time" for (idx, _) in enumerate(dist_globaldata)
+    #     primtowrite = dist_globaldata[global_local_direct_index[idx]].prim
+    #     for element in primtowrite
+    #         @printf(file,"%0.17f", element)
+    #         @printf(file, " ")
+    #     end
+    #     print(file, "\n")
+    # end
+    # close(file)
     close(ghost_holder)
     close(dist_dq)
     close(dist_q)
