@@ -127,7 +127,7 @@ function readGhostFile(folder_name::String, ghost_holder, global_local_map_index
         println(filename)
         data = read(filename, String)
         splitdata = @view split(data, "\n")[1:end-1]
-        ghost_holder[iter] = Dict{Int64,Point}()
+        ghost_holder[iter] = Dict{Int32,Point}()
         itmdata = split(splitdata[1], " ")
         local_point_count = parse(Int,itmdata[3])
         ghost_point_count = parse(Int,itmdata[4])
@@ -136,6 +136,43 @@ function readGhostFile(folder_name::String, ghost_holder, global_local_map_index
             if idx > local_point_count + 1
                 itmdata = split(itm, " ")
                 ghost_holder[iter][idx-1] = dist_globaldata[global_local_map_index[(parse(Float64,itmdata[2]), parse(Float64, itmdata[3]))]]
+            end
+        end
+    end
+end
+
+function readDistribuedFileMutables(folder_name::String, p, files_length)
+    println("Setting Up Mutables")
+    # println(folder_name)
+    iter = p - 1
+    local_points_count = files_length[iter]
+
+    local_points_holder = zeros(Float64, 28, local_points_count)
+    return local_points_holder
+end
+
+function readGhostFileMutables(folder_name::String, ghost_holder_mutable)
+    # println(ghost_folder_name)
+    for iter in 1:length(workers())
+        if iter - 1 < 10
+            filename = folder_name * "/" * "partGrid000" * string(iter-1)
+        elseif iter - 1 < 100
+            filename = folder_name * "/" * "partGrid00" * string(iter-1)
+        elseif iter - 1 < 1000
+            filename = folder_name * "/" * "partGrid0" * string(iter-1)
+        else
+            filename = folder_name * "/" * "partGrid" * string(iter-1)
+        end
+        println(filename)
+        data = read(filename, String)
+        splitdata = @view split(data, "\n")[1:end-1]
+        ghost_holder_mutable[iter] = Dict{Int32,Array{Float64,1}}()
+        itmdata = split(splitdata[1], " ")
+        local_point_count = parse(Int,itmdata[3])
+        ghost_point_count = parse(Int,itmdata[4])
+        for (idx, itm) in enumerate(splitdata)
+            if idx > local_point_count + 1
+                ghost_holder_mutable[iter][idx-1] = zeros(Float64, 28)
             end
         end
     end

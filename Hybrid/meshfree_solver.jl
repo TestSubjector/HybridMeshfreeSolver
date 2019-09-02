@@ -20,6 +20,7 @@ function main()
     # local_points_holder = Array{Array{Point,1},1}(undef, nworkers())
     # res_old_holder = Array{Float64,1}(undef, nworkers())
     ghost_holder = Array{Dict{Int32,Point},1}(undef, nworkers())
+    ghost_holder_mutable = Array{Dict{Int32, Array{Float64,1}}, 1}(undef, nworkers())
     # q_ghost_holder = Array{Dict{Int64,TempQ},1}(undef, nworkers())
     # dq_ghost_holder = Array{Dict{Int64,TempDQ},1}(undef, nworkers())
     # prim_ghost_holder = Array{Dict{Int64,TempPrim},1}(undef, nworkers())
@@ -42,19 +43,29 @@ function main()
     globaldata_parts = [@spawnat p readDistribuedFile(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
     globaldata_parts = reshape(globaldata_parts, (nworkers()))
     dist_globaldata = DArray(globaldata_parts)
+    # globaldata_parts = nothing
 
     q_parts = [@spawnat p readDistribuedFileQ(folder_name::String, defprimal, p, global_local_map_index, files_length) for p in workers()]
     q_parts = reshape(q_parts, (nworkers()))
     dist_q = DArray(q_parts)
+    # q_parts = nothing
 
     dq_parts = [@spawnat p readDistribuedFileDQ(folder_name::String, defprimal, p, global_local_map_index, files_length) for p in workers()]
     dq_parts = reshape(dq_parts, (nworkers()))
     dist_dq = DArray(dq_parts)
+    # dq_parts = nothing
+
+    globaldata_parts_mutable = [@spawnat p readDistribuedFileMutables(folder_name::String, p, files_length) for p in workers()]
+    globaldata_parts_mutable = reshape(globaldata_parts_mutable, (1,(nworkers())))
+    dist_globaldata_mutable = DArray(globaldata_parts_mutable)
+    # globaldata_parts_mutable = nothing
 
     println("Reading Ghost")
     readGhostFile(folder_name, ghost_holder, global_local_map_index, dist_globaldata)
-    # println(ghost_holder[1])
     ghost_holder = distribute(ghost_holder, procs=workers(), dist=(length(workers()),))
+
+    readGhostFileMutables(folder_name, ghost_holder_mutable)
+    ghost_holder_mutable = distribute(ghost_holder_mutable, procs=workers(), dist=(length(workers()),))
 
     format = configData["format"]["type"]
     if format == 1
@@ -217,10 +228,19 @@ function main()
     #     print(file, "\n")
     # end
     # close(file)
+
+
+    @sync for ip in procs(dist_globaldata)
+        @spawnat ip begin
+            writeToFile(dist_globaldata[:L], numPoints)
+        end
+    end
+
     close(ghost_holder)
     close(dist_dq)
     close(dist_q)
     close(dist_globaldata)
+    close(dist_globaldata_mutable)
 end
 
 function testraid()

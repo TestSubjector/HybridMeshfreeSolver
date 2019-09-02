@@ -21,6 +21,20 @@ function check_leaks()
     end
 end
 
+function writeToFile(loc_globaldata, numPoints)
+    file = open("results/split/primvals"* "_" * string(getConfig()["core"]["max_iters"]) *
+     "_" * string(numPoints) * "_" * string(myid()) * ".txt", "w")
+    @showprogress 1 "This takes time" for (idx, _) in enumerate(loc_globaldata)
+        primtowrite = loc_globaldata[idx].prim
+        for element in primtowrite
+            @printf(file,"%0.17f", element)
+            @printf(file, " ")
+        end
+        print(file, "\n")
+    end
+    close(file)
+end
+
 @inline function updateLocalGhost(loc_ghost_holder, dist_globaldata)
     localkeys = keys(loc_ghost_holder[1])
     # println(localkeys)
