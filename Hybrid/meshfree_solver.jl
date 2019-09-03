@@ -120,9 +120,12 @@ function main()
             for iter in localkeys
                 convertToFixedArray(locGhostDataFixedPoint[1], locGhostGlobalData[iter], iter)
             end
+
+            locGhostGlobalDataMutable = ghost_holder_mutable[:L]
             global gpuLocDataFixedPoint = CuArray(locDataFixedPoint)
             global gpuLocDataConn = CuArray(locDataConn)
             global gpuLocGhostDataFixedPoint = CuArray(locGhostDataFixedPoint)
+            global gpuLocGhostGlobalDataMutable = CuArray(locGhostGlobalDataMutable)
             # @cuda changeToOne(cutest)
             # part_test[:L] = Array(cutest)
         end
@@ -179,6 +182,7 @@ function main()
             Array(gpuLocDataFixedPoint)
             Array(gpuLocDataConn)
             Array(gpuLocGhostDataFixedPoint)
+            Array(gpuLocGhostGlobalDataMutable)
             # @cuda changeToOne(cutest)
             # part_test[:L] = Array(cutest)
         end
@@ -237,6 +241,7 @@ function main()
     end
 
     close(ghost_holder)
+    close(ghost_holder_mutable)
     close(dist_dq)
     close(dist_q)
     close(dist_globaldata)
