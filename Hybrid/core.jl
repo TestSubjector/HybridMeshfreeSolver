@@ -286,7 +286,7 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, 
         #    # end
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    state_update(dist_globaldata[:L], Mach, gamma, pr_inf, rho_inf, theta, iter, res_old, rk, numPoints)
+                    state_update(dist_globaldata[:L], dist_globaldata_mutable[:L], Mach, gamma, pr_inf, rho_inf, theta, iter, res_old, rk, numPoints)
                 end
             end
         end

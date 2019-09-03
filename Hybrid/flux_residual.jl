@@ -27,7 +27,7 @@ function wallindices_flux_residual(loc_globaldata, loc_ghost_holder, dist_length
 		Gxp = wall_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
 		Gxn = wall_dGx_neg(loc_globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
 		Gyn = wall_dGy_neg(loc_globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
-		@. loc_globaldata[itm].flux_res = (Gxp + Gxn + Gyn) * 2
+		# @. loc_globaldata[itm].flux_res = (Gxp + Gxn + Gyn) * 2
 		@. loc_globaldata_mutable[5:8, itm] = (Gxp + Gxn + Gyn) * 2
 		# if itm == 3
 		# 	println(IOContext(stdout, :compact => false), Gxp)
@@ -41,7 +41,7 @@ function outerindices_flux_residual(loc_globaldata, loc_ghost_holder, dist_lengt
 	Gxp = outer_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
 	Gxn = outer_dGx_neg(loc_globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
 	Gyp = outer_dGy_pos(loc_globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
-	@. loc_globaldata[itm].flux_res = Gxp + Gxn + Gyp
+	# @. loc_globaldata[itm].flux_res = Gxp + Gxn + Gyp
 	@. loc_globaldata_mutable[5:8, itm] = Gxp + Gxn + Gyp
 	return nothing
 end
@@ -60,7 +60,7 @@ function interiorindices_flux_residual(loc_globaldata, loc_ghost_holder, dist_le
 		# 	println(IOContext(stdout, :compact => false), Gxn + Gxp + Gyp + Gyn)
 		# 	println()
 		# end
-		@. loc_globaldata[itm].flux_res = Gxp + Gxn + Gyp + Gyn
+		# @. loc_globaldata[itm].flux_res = Gxp + Gxn + Gyp + Gyn
 		@. loc_globaldata_mutable[5:8, itm] = Gxp + Gxn + Gyp + Gyn
 	# end
 	return nothing
