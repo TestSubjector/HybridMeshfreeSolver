@@ -75,7 +75,6 @@ function readDistribuedFile(folder_name::String, defprimal, p, global_local_map_
                 0.0,
                 copy(defprimal),
                 zeros(Float64, 4),
-                zeros(Float64, 4),
                 Array{Array{Float64,1},1}(undef, 2), 0.0, 0, 0, 0, 0, Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0),
                 Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0), 0.0, zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4),
                 globalID)
