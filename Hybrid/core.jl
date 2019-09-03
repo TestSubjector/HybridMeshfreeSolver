@@ -210,7 +210,7 @@ function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
     return nothing
 end
 
-function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, globaldata_parts_mutable, ghost_holder_mutable, configData, res_old, numPoints)
+function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, ghost_holder_mutable, configData, res_old, numPoints)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # print(" 111\n")
     str = CuStream()
@@ -275,7 +275,7 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, 
 
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    cal_flux_residual(dist_globaldata[:L], ghost_holder[:L], configData)
+                    cal_flux_residual(dist_globaldata[:L], ghost_holder[:L], dist_globaldata_mutable[:L], configData)
                 end
             end
         #    # println(IOContext(stdout, :compact => false), globaldata[3].prim)
