@@ -147,7 +147,7 @@ function main()
 
     println(Int(getConfig()["core"]["max_iters"]) + 1)
     function run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, globaldata_parts_mutable, ghost_holder_mutable, configData, res_old, numPoints)
-        fpi_solver((Int(getConfig()["core"]["max_iters"])), ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
+        fpi_solver((Int(getConfig()["core"]["max_iters"])), ghost_holder, dist_globaldata, dist_q, dist_dq, globaldata_parts_mutable, ghost_holder_mutable, configData, res_old, numPoints)
     end
 
     res_old = zeros(Float64, 1)

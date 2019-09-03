@@ -1,6 +1,6 @@
 import SpecialFunctions
-function func_delta(loc_globaldata, globaldata, loc_ghost_holder, cfl, numPoints)
-    
+function func_delta(loc_globaldata, loc_ghost_holder, cfl, numPoints)
+
     # updateLocalGhost(loc_ghost_holder, globaldata)
     dist_length = length(loc_globaldata)
     # reduction = dist_length * (myid() - 2)
@@ -33,7 +33,7 @@ function func_delta(loc_globaldata, globaldata, loc_ghost_holder, cfl, numPoints
     return nothing
 end
 
-function state_update(loc_globaldata, globaldata, Mach, gamma, pr_inf, rho_inf, theta, iter, res_old, rk, numPoints)
+function state_update(loc_globaldata, Mach, gamma, pr_inf, rho_inf, theta, iter, res_old, rk, numPoints)
     max_res = zero(Float64)
     sum_res_sqr = zeros(Float64, 1)
     U = zeros(Float64, 4)
@@ -220,7 +220,7 @@ end
 end
 
 @inline function conserved_vector_Ubar(globaldata, itm, nx, ny, Mach, gamma, pr_inf, rho_inf, theta, Ubar)
-    
+
     u1_inf::Float64 = Mach*cos(theta)
     u2_inf::Float64 = Mach*sin(theta)
 

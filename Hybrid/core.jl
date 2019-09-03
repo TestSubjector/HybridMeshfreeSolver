@@ -210,7 +210,7 @@ function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
     return nothing
 end
 
-function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, globaldata_parts_mutable, ghost_holder_mutable, dist_dq, configData, res_old, numPoints)
+function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, globaldata_parts_mutable, ghost_holder_mutable, configData, res_old, numPoints)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # print(" 111\n")
     str = CuStream()
@@ -237,7 +237,7 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, globaldat
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
                 # println(length(localpart(globaldata)))
-                func_delta(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], cfl, numPoints)
+                func_delta(dist_globaldata[:L], ghost_holder[:L], cfl, numPoints)
             end
         end
 
@@ -247,7 +247,7 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, globaldat
         #    # end
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    q_variables(dist_globaldata[:L], dist_globaldata, dist_q[:L])
+                    q_variables(dist_globaldata[:L], dist_q[:L])
                 end
             end
 
@@ -259,7 +259,7 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, globaldat
 
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    q_var_derivatives(dist_globaldata[:L], dist_globaldata, dist_dq[:L], ghost_holder[:L], power)
+                    q_var_derivatives(dist_globaldata[:L], dist_dq[:L], ghost_holder[:L], power)
                 end
             end
         # println(IOContext(stdout, :compact => false), dist_globaldata[3])
@@ -275,7 +275,7 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, globaldat
 
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    cal_flux_residual(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], configData)
+                    cal_flux_residual(dist_globaldata[:L], ghost_holder[:L], configData)
                 end
             end
         #    # println(IOContext(stdout, :compact => false), globaldata[3].prim)
@@ -286,7 +286,7 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, globaldat
         #    # end
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    state_update(dist_globaldata[:L], dist_globaldata, Mach, gamma, pr_inf, rho_inf, theta, iter, res_old, rk, numPoints)
+                    state_update(dist_globaldata[:L], Mach, gamma, pr_inf, rho_inf, theta, iter, res_old, rk, numPoints)
                 end
             end
         end
@@ -298,7 +298,7 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, globaldat
     return nothing
 end
 
-@inline function q_variables(loc_globaldata, globaldata, loc_q)
+@inline function q_variables(loc_globaldata, loc_q)
     for (idx, itm) in enumerate(loc_globaldata)
         rho = itm.prim[1]
         u1 = itm.prim[2]
@@ -317,7 +317,7 @@ end
     return nothing
 end
 
-function q_var_derivatives(loc_globaldata, globaldata, loc_dq, loc_ghost_holder, power)
+function q_var_derivatives(loc_globaldata, loc_dq, loc_ghost_holder, power)
     sum_delx_delq = zeros(Float64, 4)
     sum_dely_delq = zeros(Float64, 4)
     dist_length = length(loc_globaldata)
