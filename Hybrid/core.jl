@@ -210,7 +210,7 @@ function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
     return nothing
 end
 
-function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
+function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, globaldata_parts_mutable, ghost_holder_mutable, dist_dq, configData, res_old, numPoints)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # print(" 111\n")
     str = CuStream()
@@ -240,12 +240,6 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, 
                 func_delta(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], cfl, numPoints)
             end
         end
-
-    # @sync for ip in procs(dist_globaldata)
-    #     @spawnat ip begin
-    #         updateLocalGhost(ghost_holder[:L], dist_globaldata)
-    #     end
-    # end
 
         for rk in 1:4
         #    # if iter == 1
