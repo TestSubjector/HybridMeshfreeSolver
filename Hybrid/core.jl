@@ -45,22 +45,25 @@ end
     return nothing
 end
 
-@inline function updateLocalGhostQ(loc_ghost_holder, dist_q)
+@inline function updateLocalGhostQ(loc_ghost_holder, loc_ghost_holder_mutable, dist_q)
     localkeys = keys(loc_ghost_holder[1])
     # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
         @. loc_ghost_holder[1][iter].q = dist_q[loc_ghost_holder[1][iter].globalID].q
+        @. loc_ghost_holder_mutable[1][iter][1:4] = loc_ghost_holder[1][iter].q
     end
     return nothing
 end
 
-@inline function updateLocalGhostDQ(loc_ghost_holder, dist_dq)
+@inline function updateLocalGhostDQ(loc_ghost_holder, loc_ghost_holder_mutable, dist_dq)
     localkeys = keys(loc_ghost_holder[1])
     # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
         @. loc_ghost_holder[1][iter].dq = dist_dq[loc_ghost_holder[1][iter].globalID].dq
+        @. loc_ghost_holder_mutable[1][iter][5:8] = loc_ghost_holder[1][iter].dq[1]
+        @. loc_ghost_holder_mutable[1][iter][9:12] = loc_ghost_holder[1][iter].dq[2]
     end
     return nothing
 end
@@ -247,19 +250,19 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, 
         #    # end
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    q_variables(dist_globaldata[:L], dist_q[:L])
+                    q_variables(dist_globaldata[:L], dist_q[:L], dist_globaldata_mutable[:L])
                 end
             end
 
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    updateLocalGhostQ(ghost_holder[:L], dist_q)
+                    updateLocalGhostQ(ghost_holder[:L], ghost_holder_mutable[:L], dist_q)
                 end
             end
 
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    q_var_derivatives(dist_globaldata[:L], dist_dq[:L], ghost_holder[:L], power)
+                    q_var_derivatives(dist_globaldata[:L], dist_dq[:L], ghost_holder[:L], dist_globaldata_mutable[:L], power)
                 end
             end
         # println(IOContext(stdout, :compact => false), dist_globaldata[3])
@@ -269,7 +272,7 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, 
 
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    updateLocalGhostDQ(ghost_holder[:L], dist_dq)
+                    updateLocalGhostDQ(ghost_holder[:L], ghost_holder_mutable[:L], dist_dq)
                 end
             end
 
@@ -298,7 +301,7 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, 
     return nothing
 end
 
-@inline function q_variables(loc_globaldata, loc_q)
+@inline function q_variables(loc_globaldata, loc_q, loc_globaldata_mutable)
     for (idx, itm) in enumerate(loc_globaldata)
         rho = itm.prim[1]
         u1 = itm.prim[2]
@@ -306,18 +309,19 @@ end
         pr = itm.prim[4]
 
         beta = 0.5 * (rho / pr)
-        loc_globaldata[idx].q[1] = log(rho) + log(beta) * 2.5 - (beta * ((u1 * u1) + (u2 * u2)))
+        loc_globaldata_mutable[9, idx] = log(rho) + log(beta) * 2.5 - (beta * ((u1 * u1) + (u2 * u2)))
         two_times_beta = 2.0 * beta
 
-        loc_globaldata[idx].q[2] = (two_times_beta * u1)
-        loc_globaldata[idx].q[3] = (two_times_beta * u2)
-        loc_globaldata[idx].q[4] = -two_times_beta
+        loc_globaldata_mutable[10, idx] = (two_times_beta * u1)
+        loc_globaldata_mutable[11, idx] = (two_times_beta * u2)
+        loc_globaldata_mutable[12, idx] = -two_times_beta
+        loc_globaldata[idx].q = @views loc_globaldata_mutable[9:12, idx]
         loc_q[idx].q = loc_globaldata[idx].q
     end
     return nothing
 end
 
-function q_var_derivatives(loc_globaldata, loc_dq, loc_ghost_holder, power)
+function q_var_derivatives(loc_globaldata, loc_dq, loc_ghost_holder, loc_globaldata_mutable, power)
     sum_delx_delq = zeros(Float64, 4)
     sum_dely_delq = zeros(Float64, 4)
     dist_length = length(loc_globaldata)
@@ -332,7 +336,9 @@ function q_var_derivatives(loc_globaldata, loc_dq, loc_ghost_holder, power)
         sum_dely_delq = fill!(sum_dely_delq, 0.0)
         for i in 1:4
             loc_globaldata[idx].max_q[i] = loc_globaldata[idx].q[i]
+            loc_globaldata_mutable[20 + i, idx] = loc_globaldata[idx].q[i]
             loc_globaldata[idx].min_q[i] = loc_globaldata[idx].q[i]
+            loc_globaldata_mutable[24 + i, idx] = loc_globaldata[idx].q[i]
         end
         for conn in itm.conn
             if conn <= dist_length
@@ -354,18 +360,22 @@ function q_var_derivatives(loc_globaldata, loc_dq, loc_ghost_holder, power)
             for i in 1:4
                 sum_delx_delq[i] += (weights * delx * (globaldata_conn.q[i] - loc_globaldata[idx].q[i]))
                 sum_dely_delq[i] += (weights * dely * (globaldata_conn.q[i] - loc_globaldata[idx].q[i]))
-                if loc_globaldata[idx].max_q[i] < globaldata_conn.q[i]
+                if loc_globaldata_mutable[20 + i, idx] < globaldata_conn.q[i]
                     loc_globaldata[idx].max_q[i] = globaldata_conn.q[i]
+                    loc_globaldata_mutable[20 + i, idx] = globaldata_conn.q[i]
                 end
-                if loc_globaldata[idx].min_q[i] > globaldata_conn.q[i]
+                if loc_globaldata_mutable[24 + i, idx] > globaldata_conn.q[i]
                     loc_globaldata[idx].min_q[i] = globaldata_conn.q[i]
+                    loc_globaldata_mutable[24 + i, idx] = globaldata_conn.q[i]
                 end
             end
         end
         det = (sum_delx_sqr * sum_dely_sqr) - (sum_delx_dely * sum_delx_dely)
         one_by_det = 1.0 / det
-        loc_globaldata[idx].dq[1] = @. one_by_det * (sum_delx_delq * sum_dely_sqr - sum_dely_delq * sum_delx_dely)
-        loc_globaldata[idx].dq[2] = @. one_by_det * (sum_dely_delq * sum_delx_sqr - sum_delx_delq * sum_delx_dely)
+        loc_globaldata_mutable[13:16, idx] = @. one_by_det * (sum_delx_delq * sum_dely_sqr - sum_dely_delq * sum_delx_dely)
+        loc_globaldata[idx].dq[1] = @views loc_globaldata_mutable[13:16, idx]
+        loc_globaldata_mutable[17:20, idx] = @. one_by_det * (sum_dely_delq * sum_delx_sqr - sum_delx_delq * sum_delx_dely)
+        loc_globaldata[idx].dq[2] = @views loc_globaldata_mutable[17:20, idx]
         loc_dq[idx].dq[1] = loc_globaldata[idx].dq[1]
         loc_dq[idx].dq[2] = loc_globaldata[idx].dq[2]
         # globaldata[idx].dq = [tempsumx, tempsumy]
