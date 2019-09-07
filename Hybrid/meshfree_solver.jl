@@ -106,6 +106,7 @@ function main()
     @sync for pid in workers()
         @spawnat pid begin
             numPoints = files_length[pid-1]
+            global gpuLocNumPoints = numPoints
             locDataFixedPoint = Array{FixedPoint,1}(undef, numPoints)
             locDataConn = zeros(Int32, 55, numPoints)
             locGlobalData = dist_globaldata[:L]
@@ -128,6 +129,28 @@ function main()
             # global gpuLocGhostGlobalDataMutable = CuArray(locGhostGlobalDataMutable)
             # @cuda changeToOne(cutest)
             # part_test[:L] = Array(cutest)
+
+            global gpuConfigData = CuArray([
+                            getConfig()["core"]["points"],#1
+                            getConfig()["core"]["cfl"],
+                            getConfig()["core"]["max_iters"],
+                            getConfig()["core"]["mach"],
+                            getConfig()["core"]["aoa"],#5
+                            getConfig()["core"]["power"],
+                            getConfig()["core"]["limiter_flag"],
+                            getConfig()["core"]["vl_const"],
+                            getConfig()["core"]["initial_conditions_flag"],
+                            getConfig()["core"]["interior_points_normal_flag"],#10
+                            getConfig()["core"]["shapes"],
+                            getConfig()["core"]["rho_inf"],
+                            getConfig()["core"]["pr_inf"],
+                            getConfig()["core"]["threadsperblock"],
+                            getConfig()["core"]["gamma"],#15
+                            getConfig()["core"]["clcd_flag"],
+                            getConfig()["point"]["wall"],
+                            getConfig()["point"]["interior"],
+                            getConfig()["point"]["outer"]
+                        ])
         end
     end
 
@@ -163,7 +186,7 @@ function main()
         # Profile.print()
         # res_old[1] = 0.0
         println("! Starting main function")
-        @timeit to "nest 4" begin
+        @timeit to "nest 1" begin
             run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, ghost_holder_mutable, configData, res_old, numPoints)
         end
     end
