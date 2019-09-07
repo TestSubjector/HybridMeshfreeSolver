@@ -51,7 +51,7 @@ end
     for iter in localkeys
         #Dict To Array Equality
         @. loc_ghost_holder[1][iter].q = dist_q[loc_ghost_holder[1][iter].globalID].q
-        @. loc_ghost_holder_mutable[1][iter][1:4] = loc_ghost_holder[1][iter].q
+        @. loc_ghost_holder_mutable[1][iter][9:12] = loc_ghost_holder[1][iter].q
     end
     return nothing
 end
@@ -62,8 +62,8 @@ end
     for iter in localkeys
         #Dict To Array Equality
         @. loc_ghost_holder[1][iter].dq = dist_dq[loc_ghost_holder[1][iter].globalID].dq
-        @. loc_ghost_holder_mutable[1][iter][5:8] = loc_ghost_holder[1][iter].dq[1]
-        @. loc_ghost_holder_mutable[1][iter][9:12] = loc_ghost_holder[1][iter].dq[2]
+        @. loc_ghost_holder_mutable[1][iter][13:16] = loc_ghost_holder[1][iter].dq[1]
+        @. loc_ghost_holder_mutable[1][iter][17:20] = loc_ghost_holder[1][iter].dq[2]
     end
     return nothing
 end

@@ -171,7 +171,7 @@ function readGhostFileMutables(folder_name::String, ghost_holder_mutable)
         ghost_point_count = parse(Int,itmdata[4])
         for (idx, itm) in enumerate(splitdata)
             if idx > local_point_count + 1
-                ghost_holder_mutable[iter][idx-1] = zeros(Float64, 12)
+                ghost_holder_mutable[iter][idx-1] = zeros(Float64, 20)
             end
         end
     end
