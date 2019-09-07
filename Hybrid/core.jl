@@ -285,10 +285,10 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, 
 
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    global gpuLocDataRest = dist_globaldata_mutable[:L]
+                    gpuLocDataRest = CuArray(dist_globaldata_mutable[:L])
                     locBlocksPerGrid = Int(ceil(gpuLocNumPoints/threadsperblock))
                     @cuda blocks= locBlocksPerGrid threads= threadsperblock cal_flux_residual_kernel(gpuLocDataConn, gpuLocDataFixedPoint, gpuLocDataRest, gpuConfigData, gpuLocNumPoints)
-                    dist_globaldata_mutable = Array(gpuLocDataRest)
+                    dist_globaldata_mutable[:L] = Array(gpuLocDataRest)
                 end
             end
         #    # println(IOContext(stdout, :compact => false), globaldata[3].prim)

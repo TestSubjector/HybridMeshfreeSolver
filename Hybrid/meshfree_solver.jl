@@ -256,18 +256,21 @@ function main()
     # end
     # close(file)
 
-
+    println("! Write To Files")
     @sync for ip in procs(dist_globaldata)
         @spawnat ip begin
             writeToFile(dist_globaldata[:L], numPoints)
         end
     end
 
+    println("! Close Distributed Arrays")
+    # d_closeall()
     close(ghost_holder)
     close(ghost_holder_mutable)
     close(dist_dq)
     close(dist_q)
     close(dist_globaldata)
+    exit()
     close(dist_globaldata_mutable)
 end
 
