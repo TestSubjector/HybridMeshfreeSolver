@@ -368,15 +368,15 @@ function q_var_derivatives(loc_globaldata, loc_dq, loc_ghost_holder, loc_globald
             sum_delx_dely += ((delx * dely) * weights)
 
             for i in 1:4
-                sum_delx_delq[i] += (weights * delx * (globaldata_conn.q[i] - loc_globaldata[idx].q[i]))
-                sum_dely_delq[i] += (weights * dely * (globaldata_conn.q[i] - loc_globaldata[idx].q[i]))
-                if loc_globaldata_mutable[20 + i, idx] < globaldata_conn.q[i]
-                    loc_globaldata[idx].max_q[i] = globaldata_conn.q[i]
-                    loc_globaldata_mutable[20 + i, idx] = globaldata_conn.q[i]
+                sum_delx_delq[i] += (weights * delx * (loc_globaldata_mutable[8+i, conn] - loc_globaldata_mutable[8+i, idx]))
+                sum_dely_delq[i] += (weights * dely * (loc_globaldata_mutable[8+i, conn] - loc_globaldata_mutable[8+i, idx]))
+                if loc_globaldata_mutable[20 + i, idx] < loc_globaldata_mutable[8+i, conn]
+                    loc_globaldata[idx].max_q[i] = loc_globaldata_mutable[8+i, conn]
+                    loc_globaldata_mutable[20 + i, idx] = loc_globaldata_mutable[8+i, conn]
                 end
-                if loc_globaldata_mutable[24 + i, idx] > globaldata_conn.q[i]
-                    loc_globaldata[idx].min_q[i] = globaldata_conn.q[i]
-                    loc_globaldata_mutable[24 + i, idx] = globaldata_conn.q[i]
+                if loc_globaldata_mutable[24 + i, idx] > loc_globaldata_mutable[8+i, conn]
+                    loc_globaldata[idx].min_q[i] = loc_globaldata_mutable[8+i, conn]
+                    loc_globaldata_mutable[24 + i, idx] = loc_globaldata_mutable[8+i, conn]
                 end
             end
         end
