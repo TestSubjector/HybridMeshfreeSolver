@@ -1,4 +1,4 @@
-function interior_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
+function interior_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 
     power::Float64 = configData["core"]["power"]::Float64
     limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
@@ -102,7 +102,7 @@ function interior_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_len
     return @. (sum_delx_delf*sum_dely_sqr - sum_dely_delf*sum_delx_dely)*one_by_det
 end
 
-function interior_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
+function interior_dGx_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 
     power::Float64 = configData["core"]["power"]::Float64
     limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
@@ -223,7 +223,7 @@ function interior_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_len
     return @. (sum_delx_delf*sum_dely_sqr - sum_dely_delf*sum_delx_dely)*one_by_det
 end
 
-function interior_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
+function interior_dGy_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 
     power::Float64 = configData["core"]["power"]::Float64
     limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
@@ -330,7 +330,7 @@ function interior_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_len
 
 end
 
-function interior_dGy_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
+function interior_dGy_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 
     power::Float64 = configData["core"]["power"]::Float64
     limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64

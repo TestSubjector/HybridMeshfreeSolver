@@ -7,6 +7,7 @@ function main()
     folder_name = string(ARGS[3])
 
     numPoints = returnFileLength(file_name)
+    # numPoints = 39381464
     println(numPoints)
     # globaldata = Array{Point,1}(undef, numPoints)
     # table = Array{Int32,1}(undef, numPoints)
@@ -104,17 +105,18 @@ function main()
     # println("Size is: ", length(globaldata))
 
     println(Int(getConfig()["core"]["max_iters"]) + 1)
-    function run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
+    function run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, res_new, numPoints)
         for i in 1:(Int(getConfig()["core"]["max_iters"]))
-            fpi_solver(i, ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
+            fpi_solver(i, ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, res_new, numPoints)
         end
     end
 
-    res_old = zeros(Float64, 1)
-    function test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
+    res_old = dzeros(nworkers())
+    res_new = dzeros(nworkers())
+    function test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, res_new, numPoints)
         println("! Starting warmup function")
-        fpi_solver(1, ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
-        res_old[1] = 0.0
+        fpi_solver(1, ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, res_new, numPoints)
+        # res_old =
         # Profile.clear_malloc_data()
         # @trace(fpi_solver(1, globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old), maxdepth = 3)
         # res_old[1] = 0.0
@@ -124,12 +126,12 @@ function main()
         # res_old[1] = 0.0
         println("! Starting main function")
         @timeit to "nest 4" begin
-            run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
+            run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, res_new, numPoints)
         end
     end
 
 
-    test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
+    test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, res_new, numPoints)
     println("! Work Completed")
     # # println(to)
     open("results/timer" * string(numPoints) * "_" * string(getConfig()["core"]["max_iters"]) *
@@ -163,23 +165,23 @@ function main()
     # println(IOContext(stdout, :compact => false), globaldata[100].delta)
     # println(IOContext(stdout, :compact => false), globaldata[1000].delta)
     # println()
-    # println(IOContext(stdout, :compact => false), globaldata[1].prim)
-    # println(IOContext(stdout, :compact => false), globaldata[100].prim)
+    println(IOContext(stdout, :compact => false), dist_globaldata[1].prim)
+    println(IOContext(stdout, :compact => false), dist_globaldata[100].prim)
     # println(IOContext(stdout, :compact => false), globaldata[1000].prim)
     # println(IOContext(stdout, :compact => false), globaldata[100].ypos_conn)
     # println(IOContext(stdout, :compact => false), globaldata[100].yneg_conn)
     # println(globaldata[1])
 
-    file = open("results/primvals" * string(numPoints) * ".txt", "w")
-    @showprogress 1 "This takes time" for (idx, _) in enumerate(dist_globaldata)
-        primtowrite = dist_globaldata[global_local_direct_index[idx]].prim
-        for element in primtowrite
-            @printf(file,"%0.17f", element)
-            @printf(file, " ")
-        end
-        print(file, "\n")
-    end
-    close(file)
+    # file = open("results/primvals" * string(numPoints) * ".txt", "w")
+    # @showprogress 1 "This takes time" for (idx, _) in enumerate(dist_globaldata)
+    #     primtowrite = dist_globaldata[global_local_direct_index[idx]].prim
+    #     for element in primtowrite
+    #         @printf(file,"%0.17f", element)
+    #         @printf(file, " ")
+    #     end
+    #     print(file, "\n")
+    # end
+    # close(file)
     close(ghost_holder)
     close(dist_dq)
     close(dist_q)

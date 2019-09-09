@@ -27,10 +27,11 @@ function main()
 
     global_local_map_index = Dict{Tuple{Float64, Float64},Int64}()
     global_local_direct_index = Array{Int32, 1}(undef, numPoints)
-    files_length = Array{Int64, 1}(undef, numPoints)
+    files_length = Array{Int64, 1}(undef, length(workers()))
+    actual_files_length = Array{Int64, 1}(undef, length(workers()))
     println("Indexing")
 
-    createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, folder_name::String, files_length)
+    createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, folder_name::String, files_length, actual_files_length)
     # println(global_local_map_index)
 
     println("Start Read")
@@ -55,7 +56,7 @@ function main()
     dist_dq = DArray(dq_parts)
     # dq_parts = nothing
 
-    globaldata_parts_mutable = [@spawnat p readDistribuedFileMutables(folder_name::String, p, files_length) for p in workers()]
+    globaldata_parts_mutable = [@spawnat p readDistribuedFileMutables(folder_name::String, p, actual_files_length) for p in workers()]
     globaldata_parts_mutable = reshape(globaldata_parts_mutable, (1,(nworkers())))
     dist_globaldata_mutable = DArray(globaldata_parts_mutable)
     # globaldata_parts_mutable = nothing
@@ -64,8 +65,8 @@ function main()
     readGhostFile(folder_name, ghost_holder, global_local_map_index, dist_globaldata)
     ghost_holder = distribute(ghost_holder, procs=workers(), dist=(length(workers()),))
 
-    readGhostFileMutables(folder_name, ghost_holder_mutable)
-    ghost_holder_mutable = distribute(ghost_holder_mutable, procs=workers(), dist=(length(workers()),))
+    # readGhostFileMutables(folder_name, ghost_holder_mutable)
+    # ghost_holder_mutable = distribute(ghost_holder_mutable, procs=workers(), dist=(length(workers()),))
 
     format = configData["format"]["type"]
     if format == 1
@@ -79,7 +80,7 @@ function main()
         end
     end
 
-    println("Start table sorting")
+    println("Start Table Sorting")
     @sync for pid in procs(dist_globaldata)
         @spawnat pid begin
             calculateConnectivity(dist_globaldata[:L], dist_globaldata, ghost_holder[:L])
@@ -106,25 +107,59 @@ function main()
     @sync for pid in workers()
         @spawnat pid begin
             numPoints = files_length[pid-1]
-            locDataFixedPoint = Array{FixedPoint,1}(undef, numPoints)
+            totalPoints = actual_files_length[pid-1]
+            global gpuLocNumPoints = numPoints
+            locDataFixedPoint = Array{FixedPoint,1}(undef, totalPoints)
             locDataConn = zeros(Int32, 55, numPoints)
             locGlobalData = dist_globaldata[:L]
+
             for idx in 1: numPoints
                 convertToFixedArray(locDataFixedPoint, locGlobalData[idx], idx)
                 convertToNeighbourArray(locDataConn, locGlobalData[idx], idx)
             end
+
             locGhostGlobalData = ghost_holder[:L][1]
-            localkeys = keys(locGhostGlobalData)
-            locGhostDataFixedPoint = Array{Dict{Int32,FixedPoint},1}(undef, 1)
-            locGhostDataFixedPoint[1] = Dict{Int32,FixedPoint}()
-            for iter in localkeys
-                convertToFixedArray(locGhostDataFixedPoint[1], locGhostGlobalData[iter], iter)
+            numPoints += 1
+            for idx in numPoints:totalPoints
+                convertToFixedArray(locDataFixedPoint, locGhostGlobalData[idx], idx)
             end
+
+            # locGhostGlobalData = ghost_holder[:L][1]
+            # localkeys = keys(locGhostGlobalData)
+            # locGhostDataFixedPoint = Array{Dict{Int32,FixedPoint},1}(undef, 1)
+            # locGhostDataFixedPoint[1] = Dict{Int32,FixedPoint}()
+            # for iter in localkeys
+            #     convertToFixedArray(locGhostDataFixedPoint[1], locGhostGlobalData[iter], iter)
+            # end
+
             global gpuLocDataFixedPoint = CuArray(locDataFixedPoint)
             global gpuLocDataConn = CuArray(locDataConn)
-            global gpuLocGhostDataFixedPoint = CuArray(locGhostDataFixedPoint)
+            # global gpuLocGhostDataFixedPoint = CuArray(locGhostDataFixedPoint)
+            # global gpuLocGhostGlobalDataMutable = CuArray(locGhostGlobalDataMutable)
             # @cuda changeToOne(cutest)
             # part_test[:L] = Array(cutest)
+
+            global gpuConfigData = CuArray([
+                            getConfig()["core"]["points"],#1
+                            getConfig()["core"]["cfl"],
+                            getConfig()["core"]["max_iters"],
+                            getConfig()["core"]["mach"],
+                            getConfig()["core"]["aoa"],#5
+                            getConfig()["core"]["power"],
+                            getConfig()["core"]["limiter_flag"],
+                            getConfig()["core"]["vl_const"],
+                            getConfig()["core"]["initial_conditions_flag"],
+                            getConfig()["core"]["interior_points_normal_flag"],#10
+                            getConfig()["core"]["shapes"],
+                            getConfig()["core"]["rho_inf"],
+                            getConfig()["core"]["pr_inf"],
+                            getConfig()["core"]["threadsperblock"],
+                            getConfig()["core"]["gamma"],#15
+                            getConfig()["core"]["clcd_flag"],
+                            getConfig()["point"]["wall"],
+                            getConfig()["point"]["interior"],
+                            getConfig()["point"]["outer"]
+                        ])
         end
     end
 
@@ -143,15 +178,16 @@ function main()
     # println("Size is: ", length(globaldata))
 
     println(Int(getConfig()["core"]["max_iters"]) + 1)
-    function run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
-        fpi_solver((Int(getConfig()["core"]["max_iters"])), ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
+    function run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, res_new, numPoints)
+        fpi_solver((Int(getConfig()["core"]["max_iters"])), ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, res_new, numPoints)
     end
 
-    res_old = zeros(Float64, 1)
-    function test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
+    res_old = dzeros(nworkers())
+    res_new = dzeros(nworkers())
+    function test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, res_new, numPoints)
         println("! Starting warmup function")
-        fpi_solver(1, ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
-        res_old[1] = 0.0
+        fpi_solver(1, ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, res_new, numPoints)
+        # res_old[1] = 0.0
         # Profile.clear_malloc_data()
         # @trace(fpi_solver(1, globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old), maxdepth = 3)
         # res_old[1] = 0.0
@@ -159,16 +195,16 @@ function main()
         # @profile fpi_solver(1, globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old)
         # Profile.print()
         # res_old[1] = 0.0
-        println("! Starting main function")
-        @timeit to "nest 4" begin
-            run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
+        println("! Starting Main Function")
+        @timeit to "nest 1" begin
+            run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, res_new, numPoints)
         end
     end
 
-    test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
+    test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, res_new, numPoints)
     println("! Work Completed")
     # # println(to)
-    open("temp/timer" * string(numPoints) * "_" * string(getConfig()["core"]["max_iters"]) *
+    open("temp/timercuda" * string(numPoints) * "_" * string(getConfig()["core"]["max_iters"]) *
         "_" * string(length(workers())) *".txt", "w") do io
         print_timer(io, to)
     end
@@ -178,7 +214,8 @@ function main()
         @spawnat pid begin
             Array(gpuLocDataFixedPoint)
             Array(gpuLocDataConn)
-            Array(gpuLocGhostDataFixedPoint)
+            # Array(gpuLocGhostDataFixedPoint)
+            # Array(gpuLocGhostGlobalDataMutable)
             # @cuda changeToOne(cutest)
             # part_test[:L] = Array(cutest)
         end
@@ -229,14 +266,18 @@ function main()
     # end
     # close(file)
 
-
+    println("! Write To Files")
     @sync for ip in procs(dist_globaldata)
         @spawnat ip begin
             writeToFile(dist_globaldata[:L], numPoints)
         end
     end
 
+    println("! Close Distributed Arrays")
+    # d_closeall()
+    exit()
     close(ghost_holder)
+    close(ghost_holder_mutable)
     close(dist_dq)
     close(dist_q)
     close(dist_globaldata)

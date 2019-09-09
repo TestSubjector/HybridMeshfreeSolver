@@ -186,7 +186,7 @@ function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
     return nothing
 end
 
-function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, numPoints)
+function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, res_new, numPoints)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # print(" 111\n")
     if iter == 1
@@ -258,12 +258,20 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_dq, config
     #    # end
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                state_update(dist_globaldata[:L], dist_globaldata, configData, iter, res_old, rk, numPoints)
+                state_update(dist_globaldata[:L], dist_globaldata, configData, iter, res_old[:L], res_new[:L], rk, numPoints)
             end
         end
     end
-    
-    println("Iteration Number ", iter, " ", res_old)
+
+    residue = 0
+    if iter <= 2
+        # res_old[1] = res_new[1]
+        residue = 0
+    else
+        residue = log10(sqrt(sum(res_new))/sqrt(sum(res_old)))
+    end
+
+    println("Iteration Number ", iter, " ", residue)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # residue = res_old
     return nothing

@@ -1,4 +1,4 @@
-function venkat_limiter_kernel(gpuGlobalDataFixedPoint, gpuGlobalDataRest, idx, gpuConfigData, delx, dely, shared, thread_idx, block_dim) 
+function venkat_limiter_kernel(gpuGlobalDataFixedPoint, gpuGlobalDataRest, idx, gpuConfigData, delx, dely, shared, thread_idx, block_dim)
     # @cuprintf("Type is %s", typeof(VL_CONST))
     epsigh = gpuConfigData[8] * gpuGlobalDataFixedPoint[idx].short_distance
     epsi = epsigh*epsigh*epsigh
@@ -13,6 +13,9 @@ function venkat_limiter_kernel(gpuGlobalDataFixedPoint, gpuGlobalDataRest, idx, 
             del_pos = gpuGlobalDataRest[21+i, idx] - q
             if del_neg < 0
                 del_pos = gpuGlobalDataRest[25+i, idx] - q
+            end
+            if del_neg == 0
+                del_pos = 0
             end
             num = (del_pos*del_pos) + (epsi*epsi)
             num = (num*del_neg) + 2 * (del_neg*del_neg*del_pos)
