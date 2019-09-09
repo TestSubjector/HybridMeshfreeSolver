@@ -6,6 +6,7 @@ end
 
 function createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, folder_name::String)
     index_flag = 1
+    # println("Reading multiple files")
     for iter in 1:length(workers())
         if iter - 1 < 10
             filename = folder_name * "/" * "partGrid000" * string(iter-1)
@@ -16,6 +17,7 @@ function createGlobalLocalMapIndex(global_local_map_index, global_local_direct_i
         else
             filename = folder_name * "/" * "partGrid" * string(iter-1)
         end
+        println(filename)
         data = read(filename, String)
         splitdata = @view split(data, "\n")[1:end-1]
         itmdata = split(splitdata[1], " ")

@@ -33,7 +33,7 @@ function func_delta(loc_globaldata, loc_ghost_holder, cfl, numPoints)
     return nothing
 end
 
-function state_update(loc_globaldata, loc_globaldata_mutable, Mach, gamma, pr_inf, rho_inf, theta, iter, res_old, rk, numPoints)
+function state_update(loc_globaldata, loc_globaldata_mutable, Mach, gamma, pr_inf, rho_inf, theta, iter, res_old, res_new, rk, numPoints)
     max_res = zero(Float64)
     sum_res_sqr = zeros(Float64, 1)
     U = zeros(Float64, 4)
@@ -55,6 +55,10 @@ function state_update(loc_globaldata, loc_globaldata_mutable, Mach, gamma, pr_in
     # println(sum_res_sqr[1])
     # println("The length is ", length(globaldata))
     # res_new = sqrt(sum_res_sqr[1])/ length(globaldata)
+    res_new[1] = sum_res_sqr[1]
+    if iter <= 2
+        res_old[1] = res_new[1]
+    end
     # residue = 0
     # # println(res_old)
     # if iter <= 2

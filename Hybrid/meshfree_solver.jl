@@ -178,15 +178,16 @@ function main()
     # println("Size is: ", length(globaldata))
 
     println(Int(getConfig()["core"]["max_iters"]) + 1)
-    function run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, numPoints)
-        fpi_solver((Int(getConfig()["core"]["max_iters"])), ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, numPoints)
+    function run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, res_new, numPoints)
+        fpi_solver((Int(getConfig()["core"]["max_iters"])), ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, res_new, numPoints)
     end
 
-    res_old = zeros(Float64, 1)
-    function test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, numPoints)
+    res_old = dzeros(nworkers())
+    res_new = dzeros(nworkers())
+    function test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, res_new, numPoints)
         println("! Starting warmup function")
-        fpi_solver(1, ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, numPoints)
-        res_old[1] = 0.0
+        fpi_solver(1, ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, res_new, numPoints)
+        # res_old[1] = 0.0
         # Profile.clear_malloc_data()
         # @trace(fpi_solver(1, globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old), maxdepth = 3)
         # res_old[1] = 0.0
@@ -196,11 +197,11 @@ function main()
         # res_old[1] = 0.0
         println("! Starting Main Function")
         @timeit to "nest 1" begin
-            run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, numPoints)
+            run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, res_new, numPoints)
         end
     end
 
-    test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, numPoints)
+    test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, res_new, numPoints)
     println("! Work Completed")
     # # println(to)
     open("temp/timercuda" * string(numPoints) * "_" * string(getConfig()["core"]["max_iters"]) *
