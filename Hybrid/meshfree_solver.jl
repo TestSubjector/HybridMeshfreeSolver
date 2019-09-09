@@ -114,18 +114,18 @@ function main()
                 convertToFixedArray(locDataFixedPoint, locGlobalData[idx], idx)
                 convertToNeighbourArray(locDataConn, locGlobalData[idx], idx)
             end
-            locGhostGlobalData = ghost_holder[:L][1]
-            localkeys = keys(locGhostGlobalData)
-            locGhostDataFixedPoint = Array{Dict{Int32,FixedPoint},1}(undef, 1)
-            locGhostDataFixedPoint[1] = Dict{Int32,FixedPoint}()
-            for iter in localkeys
-                convertToFixedArray(locGhostDataFixedPoint[1], locGhostGlobalData[iter], iter)
-            end
 
-            locGhostGlobalDataMutable = ghost_holder_mutable[:L]
+            # locGhostGlobalData = ghost_holder[:L][1]
+            # localkeys = keys(locGhostGlobalData)
+            # locGhostDataFixedPoint = Array{Dict{Int32,FixedPoint},1}(undef, 1)
+            # locGhostDataFixedPoint[1] = Dict{Int32,FixedPoint}()
+            # for iter in localkeys
+            #     convertToFixedArray(locGhostDataFixedPoint[1], locGhostGlobalData[iter], iter)
+            # end
+
             global gpuLocDataFixedPoint = CuArray(locDataFixedPoint)
             global gpuLocDataConn = CuArray(locDataConn)
-            global gpuLocGhostDataFixedPoint = CuArray(locGhostDataFixedPoint)
+            # global gpuLocGhostDataFixedPoint = CuArray(locGhostDataFixedPoint)
             # global gpuLocGhostGlobalDataMutable = CuArray(locGhostGlobalDataMutable)
             # @cuda changeToOne(cutest)
             # part_test[:L] = Array(cutest)
@@ -265,12 +265,12 @@ function main()
 
     println("! Close Distributed Arrays")
     # d_closeall()
+    exit()
     close(ghost_holder)
     close(ghost_holder_mutable)
     close(dist_dq)
     close(dist_q)
     close(dist_globaldata)
-    exit()
     close(dist_globaldata_mutable)
 end
 

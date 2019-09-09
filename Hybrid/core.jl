@@ -45,25 +45,25 @@ end
     return nothing
 end
 
-@inline function updateLocalGhostQ(loc_ghost_holder, loc_ghost_holder_mutable, dist_q)
+@inline function updateLocalGhostQ(loc_ghost_holder, dist_q)
     localkeys = keys(loc_ghost_holder[1])
     # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
         @. loc_ghost_holder[1][iter].q = dist_q[loc_ghost_holder[1][iter].globalID].q
-        @. loc_ghost_holder_mutable[1][iter][9:12] = loc_ghost_holder[1][iter].q
+        # @. loc_ghost_holder_mutable[1][iter][9:12] = loc_ghost_holder[1][iter].q
     end
     return nothing
 end
 
-@inline function updateLocalGhostDQ(loc_ghost_holder, loc_ghost_holder_mutable, dist_dq)
+@inline function updateLocalGhostDQ(loc_ghost_holder, dist_dq)
     localkeys = keys(loc_ghost_holder[1])
     # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
         @. loc_ghost_holder[1][iter].dq = dist_dq[loc_ghost_holder[1][iter].globalID].dq
-        @. loc_ghost_holder_mutable[1][iter][13:16] = loc_ghost_holder[1][iter].dq[1]
-        @. loc_ghost_holder_mutable[1][iter][17:20] = loc_ghost_holder[1][iter].dq[2]
+        # @. loc_ghost_holder_mutable[1][iter][13:16] = loc_ghost_holder[1][iter].dq[1]
+        # @. loc_ghost_holder_mutable[1][iter][17:20] = loc_ghost_holder[1][iter].dq[2]
     end
     return nothing
 end
@@ -257,7 +257,7 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, 
 
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    updateLocalGhostQ(ghost_holder[:L], ghost_holder_mutable[:L], dist_q)
+                    updateLocalGhostQ(ghost_holder[:L], dist_q)
                 end
             end
 
@@ -273,7 +273,7 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, 
 
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    updateLocalGhostDQ(ghost_holder[:L], ghost_holder_mutable[:L], dist_dq)
+                    updateLocalGhostDQ(ghost_holder[:L], dist_dq)
                 end
             end
 
