@@ -140,7 +140,6 @@ function readGhostFile(folder_name::String, ghost_holder, global_local_map_index
             end
         end
     end
-    println(keys(ghost_holder[1]))
 end
 
 function readDistribuedFileMutables(folder_name::String, p, actual_files_length)
@@ -153,29 +152,43 @@ function readDistribuedFileMutables(folder_name::String, p, actual_files_length)
     return local_points_holder
 end
 
-function readGhostFileMutables(folder_name::String, ghost_holder_mutable)
-    # println(ghost_folder_name)
-    for iter in 1:length(workers())
-        if iter - 1 < 10
-            filename = folder_name * "/" * "partGrid000" * string(iter-1)
-        elseif iter - 1 < 100
-            filename = folder_name * "/" * "partGrid00" * string(iter-1)
-        elseif iter - 1 < 1000
-            filename = folder_name * "/" * "partGrid0" * string(iter-1)
-        else
-            filename = folder_name * "/" * "partGrid" * string(iter-1)
+function writeToFile(loc_globaldata, numPoints)
+    file = open("results/split/primvalscuda"* "_" * string(getConfig()["core"]["max_iters"]) *
+     "_" * string(numPoints) * "_" * string(myid()) * ".txt", "w")
+    @showprogress 1 "This takes time" for (idx, _) in enumerate(loc_globaldata)
+        primtowrite = loc_globaldata[idx].prim
+        for element in primtowrite
+            @printf(file,"%0.17f", element)
+            @printf(file, " ")
         end
-        println(filename)
-        data = read(filename, String)
-        splitdata = @view split(data, "\n")[1:end-1]
-        ghost_holder_mutable[iter] = Dict{Int32,Array{Float64,1}}()
-        itmdata = split(splitdata[1], " ")
-        local_point_count = parse(Int,itmdata[3])
-        ghost_point_count = parse(Int,itmdata[4])
-        for (idx, itm) in enumerate(splitdata)
-            if idx > local_point_count + 1
-                ghost_holder_mutable[iter][idx-1] = zeros(Float64, 20)
-            end
-        end
+        print(file, "\n")
     end
+    close(file)
 end
+
+# function readGhostFileMutables(folder_name::String, ghost_holder_mutable)
+#     # println(ghost_folder_name)
+#     for iter in 1:length(workers())
+#         if iter - 1 < 10
+#             filename = folder_name * "/" * "partGrid000" * string(iter-1)
+#         elseif iter - 1 < 100
+#             filename = folder_name * "/" * "partGrid00" * string(iter-1)
+#         elseif iter - 1 < 1000
+#             filename = folder_name * "/" * "partGrid0" * string(iter-1)
+#         else
+#             filename = folder_name * "/" * "partGrid" * string(iter-1)
+#         end
+#         println(filename)
+#         data = read(filename, String)
+#         splitdata = @view split(data, "\n")[1:end-1]
+#         ghost_holder_mutable[iter] = Dict{Int32,Array{Float64,1}}()
+#         itmdata = split(splitdata[1], " ")
+#         local_point_count = parse(Int,itmdata[3])
+#         ghost_point_count = parse(Int,itmdata[4])
+#         for (idx, itm) in enumerate(splitdata)
+#             if idx > local_point_count + 1
+#                 ghost_holder_mutable[iter][idx-1] = zeros(Float64, 20)
+#             end
+#         end
+#     end
+# end

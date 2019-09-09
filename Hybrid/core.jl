@@ -21,20 +21,6 @@ function check_leaks()
     end
 end
 
-function writeToFile(loc_globaldata, numPoints)
-    file = open("results/split/primvals"* "_" * string(getConfig()["core"]["max_iters"]) *
-     "_" * string(numPoints) * "_" * string(myid()) * ".txt", "w")
-    @showprogress 1 "This takes time" for (idx, _) in enumerate(loc_globaldata)
-        primtowrite = loc_globaldata[idx].prim
-        for element in primtowrite
-            @printf(file,"%0.17f", element)
-            @printf(file, " ")
-        end
-        print(file, "\n")
-    end
-    close(file)
-end
-
 @inline function updateLocalGhost(loc_ghost_holder, dist_globaldata)
     localkeys = keys(loc_ghost_holder[1])
     # println(localkeys)
@@ -213,7 +199,7 @@ function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
     return nothing
 end
 
-function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, ghost_holder_mutable, configData, res_old, numPoints)
+function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, configData, res_old, numPoints)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # print(" 111\n")
     str = CuStream()
@@ -277,11 +263,11 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, 
                 end
             end
 
-            @sync for ip in procs(dist_globaldata)
-                @spawnat ip begin
-                    cal_flux_residual(dist_globaldata[:L], ghost_holder[:L], dist_globaldata_mutable[:L], configData)
-                end
-            end
+            # @sync for ip in procs(dist_globaldata)
+            #     @spawnat ip begin
+            #         cal_flux_residual(dist_globaldata[:L], ghost_holder[:L], dist_globaldata_mutable[:L], configData)
+            #     end
+            # end
 
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
@@ -382,9 +368,9 @@ function q_var_derivatives(loc_globaldata, loc_dq, loc_ghost_holder, loc_globald
         end
         det = (sum_delx_sqr * sum_dely_sqr) - (sum_delx_dely * sum_delx_dely)
         one_by_det = 1.0 / det
-        loc_globaldata_mutable[13:16, idx] = @. one_by_det * (sum_delx_delq * sum_dely_sqr - sum_dely_delq * sum_delx_dely)
+        @. loc_globaldata_mutable[13:16, idx] = one_by_det * (sum_delx_delq * sum_dely_sqr - sum_dely_delq * sum_delx_dely)
         loc_globaldata[idx].dq[1] = @views loc_globaldata_mutable[13:16, idx]
-        loc_globaldata_mutable[17:20, idx] = @. one_by_det * (sum_dely_delq * sum_delx_sqr - sum_delx_delq * sum_delx_dely)
+        @. loc_globaldata_mutable[17:20, idx] = one_by_det * (sum_dely_delq * sum_delx_sqr - sum_delx_delq * sum_delx_dely)
         loc_globaldata[idx].dq[2] = @views loc_globaldata_mutable[17:20, idx]
         loc_dq[idx].dq[1] = loc_globaldata[idx].dq[1]
         loc_dq[idx].dq[2] = loc_globaldata[idx].dq[2]
