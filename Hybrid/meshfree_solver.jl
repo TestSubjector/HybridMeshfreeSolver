@@ -27,10 +27,11 @@ function main()
 
     global_local_map_index = Dict{Tuple{Float64, Float64},Int64}()
     global_local_direct_index = Array{Int32, 1}(undef, numPoints)
-    files_length = Array{Int64, 1}(undef, numPoints)
+    files_length = Array{Int64, 1}(undef, length(workers()))
+    actual_files_length = Array{Int64, 1}(undef, length(workers()))
     println("Indexing")
 
-    createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, folder_name::String, files_length)
+    createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, folder_name::String, files_length, actual_files_length)
     # println(global_local_map_index)
 
     println("Start Read")
@@ -55,7 +56,7 @@ function main()
     dist_dq = DArray(dq_parts)
     # dq_parts = nothing
 
-    globaldata_parts_mutable = [@spawnat p readDistribuedFileMutables(folder_name::String, p, files_length) for p in workers()]
+    globaldata_parts_mutable = [@spawnat p readDistribuedFileMutables(folder_name::String, p, actual_files_length) for p in workers()]
     globaldata_parts_mutable = reshape(globaldata_parts_mutable, (1,(nworkers())))
     dist_globaldata_mutable = DArray(globaldata_parts_mutable)
     # globaldata_parts_mutable = nothing
@@ -79,7 +80,7 @@ function main()
         end
     end
 
-    println("Start table sorting")
+    println("Start Table Sorting")
     @sync for pid in procs(dist_globaldata)
         @spawnat pid begin
             calculateConnectivity(dist_globaldata[:L], dist_globaldata, ghost_holder[:L])
@@ -185,7 +186,7 @@ function main()
         # @profile fpi_solver(1, globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old)
         # Profile.print()
         # res_old[1] = 0.0
-        println("! Starting main function")
+        println("! Starting Main Function")
         @timeit to "nest 1" begin
             run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_globaldata_mutable, ghost_holder_mutable, configData, res_old, numPoints)
         end
@@ -204,7 +205,7 @@ function main()
         @spawnat pid begin
             Array(gpuLocDataFixedPoint)
             Array(gpuLocDataConn)
-            Array(gpuLocGhostDataFixedPoint)
+            # Array(gpuLocGhostDataFixedPoint)
             # Array(gpuLocGhostGlobalDataMutable)
             # @cuda changeToOne(cutest)
             # part_test[:L] = Array(cutest)

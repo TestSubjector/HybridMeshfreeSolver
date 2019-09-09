@@ -4,7 +4,7 @@ function returnFileLength(file_name::String)
     return length(splitdata) - 1
 end
 
-function createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, folder_name::String, files_length)
+function createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, folder_name::String, files_length, actual_files_length)
     index_flag = 1
     for iter in 1:length(workers())
         if iter - 1 < 10
@@ -20,7 +20,9 @@ function createGlobalLocalMapIndex(global_local_map_index, global_local_direct_i
         splitdata = @view split(data, "\n")[1:end-1]
         itmdata = split(splitdata[1], " ")
         local_point_count = parse(Int,itmdata[3])
+        ghost_point_count = parse(Int,itmdata[4])
         files_length[iter] = local_point_count
+        actual_files_length[iter] = local_point_count + ghost_point_count
         for (idx, itm) in enumerate(splitdata)
             if idx == 1
                 continue
@@ -138,13 +140,14 @@ function readGhostFile(folder_name::String, ghost_holder, global_local_map_index
             end
         end
     end
+    println(keys(ghost_holder[1]))
 end
 
-function readDistribuedFileMutables(folder_name::String, p, files_length)
+function readDistribuedFileMutables(folder_name::String, p, actual_files_length)
     println("Setting Up Mutables")
     # println(folder_name)
     iter = p - 1
-    local_points_count = files_length[iter]
+    local_points_count = actual_files_length[iter]
 
     local_points_holder = zeros(Float64, 28, local_points_count)
     return local_points_holder
