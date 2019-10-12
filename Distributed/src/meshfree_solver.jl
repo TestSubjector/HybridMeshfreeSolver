@@ -3,10 +3,14 @@ function main()
     configData = getConfig()
     wallpts, Interiorpts, outerpts, shapepts = 0,0,0,0
 
+    format = configData["format"]["type"]
     file_name = string(ARGS[2])
     folder_name = string(ARGS[3])
 
     numPoints = returnFileLength(file_name)
+    if format == "old"
+        numPoints += 1
+    end
     # numPoints = 39381464
     println(numPoints)
     # globaldata = Array{Point,1}(undef, numPoints)
@@ -38,7 +42,11 @@ function main()
 
     println("Read Local Files")
     # readDistribuedFile(folder_name::String, defprimal, 12, global_local_map_index)
-    globaldata_parts = [@spawnat p readDistribuedFile(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
+    if format == "quadtree"
+        globaldata_parts = [@spawnat p readDistribuedFileQuadtree(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
+    elseif format == "old"
+        globaldata_parts = [@spawnat p readDistribuedFile(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
+    end
     globaldata_parts = reshape(globaldata_parts, (nworkers()))
     dist_globaldata = DArray(globaldata_parts)
 
@@ -55,15 +63,14 @@ function main()
     # println(ghost_holder[1])
     ghost_holder = distribute(ghost_holder, procs=workers(), dist=(length(workers()),))
 
-    format = configData["format"]["type"]
-    if format == 1
-        interior = configData["point"]["interior"]
-        wall = configData["point"]["wall"]
-        outer = configData["point"]["outer"]
-        @sync for pid in procs(dist_globaldata)
-            @spawnat pid begin
-                placeNormals(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], interior, wall, outer)
-            end
+
+
+    interior = configData["point"]["interior"]
+    wall = configData["point"]["wall"]
+    outer = configData["point"]["outer"]
+    @sync for pid in procs(dist_globaldata)
+        @spawnat pid begin
+            placeNormals(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], interior, wall, outer)
         end
     end
 
@@ -134,7 +141,7 @@ function main()
     test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, res_new, numPoints)
     println("! Work Completed")
     # # println(to)
-    open("results/timer" * string(numPoints) * "_" * string(getConfig()["core"]["max_iters"]) *
+    open("../results/timer" * string(numPoints) * "_" * string(getConfig()["core"]["max_iters"]) *
         "_" * string(length(workers())) *".txt", "w") do io
         print_timer(io, to)
     end
@@ -165,14 +172,14 @@ function main()
     # println(IOContext(stdout, :compact => false), globaldata[100].delta)
     # println(IOContext(stdout, :compact => false), globaldata[1000].delta)
     # println()
-    println(IOContext(stdout, :compact => false), dist_globaldata[1].prim)
-    println(IOContext(stdout, :compact => false), dist_globaldata[100].prim)
+    # println(IOContext(stdout, :compact => false), dist_globaldata[1].prim)
+    # println(IOContext(stdout, :compact => false), dist_globaldata[100].prim)
     # println(IOContext(stdout, :compact => false), globaldata[1000].prim)
     # println(IOContext(stdout, :compact => false), globaldata[100].ypos_conn)
     # println(IOContext(stdout, :compact => false), globaldata[100].yneg_conn)
     # println(globaldata[1])
 
-    # file = open("results/primvals" * string(numPoints) * ".txt", "w")
+    # file = open("../results/primvals" * string(numPoints) * ".txt", "w")
     # @showprogress 1 "This takes time" for (idx, _) in enumerate(dist_globaldata)
     #     primtowrite = dist_globaldata[global_local_direct_index[idx]].prim
     #     for element in primtowrite
@@ -186,4 +193,6 @@ function main()
     close(dist_dq)
     close(dist_q)
     close(dist_globaldata)
+    close(res_old)
+    close(res_new)
 end

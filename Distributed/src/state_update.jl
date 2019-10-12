@@ -28,7 +28,7 @@ function func_delta(loc_globaldata, globaldata, loc_ghost_holder, configData, nu
             end
         end
         loc_globaldata[idx].delta = min_delt
-        loc_globaldata[idx].prim_old = loc_globaldata[idx].prim
+        @. loc_globaldata[idx].prim_old = loc_globaldata[idx].prim
     end
     return nothing
 end
@@ -88,7 +88,7 @@ function state_update_wall(globaldata, itm, max_res, sum_res_sqr, U, Uold, rk)
     #     println(IOContext(stdout, :compact => false), globaldata[1].prim)
     # end
     temp = U[1]
-    @. U = U - (globaldata[itm].delta .* globaldata[itm].flux_res)
+    @. U = U - 0.5 * (globaldata[itm].delta .* globaldata[itm].flux_res)
     if rk == 3
         primitive_to_conserved_old(globaldata, itm, nx, ny, Uold)
         @. U = U * 1/3 + Uold * 2/3
@@ -124,7 +124,7 @@ end
     ny = globaldata[itm].ny
     conserved_vector_Ubar(globaldata, itm, nx, ny, configData, U)
     temp = U[1]
-    @. U = U - globaldata[itm].delta * globaldata[itm].flux_res
+    @. U = U - 0.5 * globaldata[itm].delta * globaldata[itm].flux_res
     if rk == 3
         conserved_vector_Ubar_old(globaldata, itm, nx, ny, configData, Uold)
         @. U = U * 1/3 + Uold * 2/3
@@ -153,7 +153,7 @@ end
     #     # println(IOContext(stdout, :compact => false), temp)
     # end
     temp = U[1]
-    @. U = U - globaldata[itm].delta .* globaldata[itm].flux_res
+    @. U = U - 0.5 * globaldata[itm].delta .* globaldata[itm].flux_res
     if rk == 3
         primitive_to_conserved_old(globaldata, itm, nx, ny, Uold)
         @. U =U * 1/3 + Uold * 2/3
