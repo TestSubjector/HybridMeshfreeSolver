@@ -4,6 +4,27 @@ function returnFileLength(file_name::String)
     return length(splitdata) - 1
 end
 
+function findTotalPoints(folder_name::String)
+    point_sum = 0
+    for iter in 1:length(workers())
+        if iter - 1 < 10
+            filename = folder_name * "/" * "partGrid000" * string(iter-1)
+        elseif iter - 1 < 100
+            filename = folder_name * "/" * "partGrid00" * string(iter-1)
+        elseif iter - 1 < 1000
+            filename = folder_name * "/" * "partGrid0" * string(iter-1)
+        else
+            filename = folder_name * "/" * "partGrid" * string(iter-1)
+        end
+        data = read(filename, String)
+        splitdata = @view split(data, "\n")[1:end-1]
+        itmdata = split(splitdata[1], " ")
+        local_point_count = parse(Int,itmdata[3])
+        point_sum += local_point_count
+    end
+    return point_sum
+end
+
 function createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, folder_name::String, files_length, actual_files_length)
     index_flag = 1
     for iter in 1:length(workers())
