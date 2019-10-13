@@ -210,7 +210,7 @@ function fpi_solver(iter_store, ghost_holder, dist_globaldata, dist_q, dist_dq, 
     pr_inf::Float64 = configData["core"]["pr_inf"]::Float64
     rho_inf::Float64 = configData["core"]["rho_inf"]::Float64
     theta = calculateTheta(configData)
-    threadsperblock = parse(Int , ARGS[4])
+    threadsperblock = parse(Int, ARGS[3])
 
     for iter in 1:iter_store
         if iter == 1

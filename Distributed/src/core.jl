@@ -17,6 +17,10 @@ end
     for iter in localkeys
         #Dict To Array Equality
         loc_ghost_holder[1][iter] = dist_globaldata[loc_ghost_holder[1][iter].globalID]
+        # if iter == 6305000
+        #     print("Ghost>> ")
+        #     println(loc_ghost_holder[1][iter])
+        # end
     end
     return nothing
 end
@@ -27,6 +31,10 @@ end
     for iter in localkeys
         #Dict To Array Equality
         @. loc_ghost_holder[1][iter].q = dist_q[loc_ghost_holder[1][iter].globalID].q
+        # if iter == 63050000
+        #     print("Q>> ")
+        #     println(loc_ghost_holder[1][iter])
+        # end
     end
     return nothing
 end
@@ -37,6 +45,56 @@ end
     for iter in localkeys
         #Dict To Array Equality
         @. loc_ghost_holder[1][iter].dq = dist_dq[loc_ghost_holder[1][iter].globalID].dq
+        # if iter == 63050000
+        #     print("DQ>> ")
+        #     println(loc_ghost_holder[1][iter])
+        # end
+    end
+    return nothing
+end
+
+@inline function updateLocalGhostMaxQ(loc_ghost_holder, dist_max_q)
+    localkeys = keys(loc_ghost_holder[1])
+    # println(localkeys)
+    for iter in localkeys
+        #Dict To Array Equality
+        @. loc_ghost_holder[1][iter].max_q = dist_max_q[loc_ghost_holder[1][iter].globalID].max_q
+        # if iter == 63050000
+        #     print("MaxQ>> ")
+        #     println(loc_ghost_holder[1][iter])
+        # end
+    end
+    return nothing
+end
+
+@inline function updateLocalGhostMinQ(loc_ghost_holder, dist_min_q)
+    localkeys = keys(loc_ghost_holder[1])
+    # println(localkeys)
+    for iter in localkeys
+        #Dict To Array Equality
+        @. loc_ghost_holder[1][iter].min_q = dist_min_q[loc_ghost_holder[1][iter].globalID].min_q
+        # if iter == 63050000
+        #     print("MinQ>> ")
+        #     println(loc_ghost_holder[1][iter])
+        # end
+    end
+    return nothing
+end
+
+@inline function updateLocalGhostPrim(loc_ghost_holder, dist_prim)
+    localkeys = keys(loc_ghost_holder[1])
+    # println(localkeys)
+    for iter in localkeys
+        #Dict To Array Equality
+        # if iter == 6305
+        #     print("Prim>> ")
+        #     println(loc_ghost_holder[1][iter].prim)
+        # end
+        @. loc_ghost_holder[1][iter].prim = dist_prim[loc_ghost_holder[1][iter].globalID].prim
+        # if iter == 6305
+        #     print("Prim>> ")
+        #     println(loc_ghost_holder[1][iter].prim)
+        # end
     end
     return nothing
 end
@@ -186,40 +244,39 @@ function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
     return nothing
 end
 
-function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_dq, configData, res_old, res_new, numPoints)
+function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_dq, dist_max_q, dist_min_q, dist_prim, configData, res_old, res_new, numPoints)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # print(" 111\n")
-    if iter == 1
-        println("Starting FuncDelta")
-    end
-    # @sync
-
     @sync for ip in procs(dist_globaldata)
         @spawnat ip begin
-            updateLocalGhost(ghost_holder[:L], dist_globaldata)
+            updateLocalGhostPrim(ghost_holder[:L], dist_prim)
+        end
+    end
+
+    if iter == 1
+        println("Starting FuncDelta")
+        @sync for ip in procs(dist_globaldata)
+            @spawnat ip begin
+                updateLocalGhost(ghost_holder[:L], dist_globaldata)
+            end
         end
     end
 
     @sync for ip in procs(dist_globaldata)
         @spawnat ip begin
             # println(length(localpart(globaldata)))
-            func_delta(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], configData, numPoints)
+            func_delta(dist_globaldata[:L], ghost_holder[:L], configData, numPoints)
         end
     end
-
-    # @sync for ip in procs(dist_globaldata)
-    #     @spawnat ip begin
-    #         updateLocalGhost(ghost_holder[:L], dist_globaldata)
-    #     end
-    # end
 
     for rk in 1:4
     #    # if iter == 1
     #        # println("Starting QVar")
     #    # end
+
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                q_variables(dist_globaldata[:L], dist_globaldata, dist_q[:L])
+                q_variables(dist_globaldata[:L], dist_q[:L])
             end
         end
 
@@ -231,13 +288,9 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_dq, config
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                q_var_derivatives(dist_globaldata[:L], dist_globaldata, dist_dq[:L], ghost_holder[:L], configData)
+                q_var_derivatives(dist_globaldata[:L], dist_dq[:L], dist_max_q[:L], dist_min_q[:L], ghost_holder[:L], configData)
             end
         end
-        # println(IOContext(stdout, :compact => false), dist_globaldata[3])
-    #    # if iter == 1
-    #        # println("Starting Calflux")
-    #    # end
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
@@ -247,18 +300,25 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_dq, config
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
+                updateLocalGhostMaxQ(ghost_holder[:L], dist_max_q)
+            end
+        end
+
+        @sync for ip in procs(dist_globaldata)
+            @spawnat ip begin
+                updateLocalGhostMinQ(ghost_holder[:L], dist_min_q)
+            end
+        end
+
+        @sync for ip in procs(dist_globaldata)
+            @spawnat ip begin
                 cal_flux_residual(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], configData)
             end
         end
-    #    # println(IOContext(stdout, :compact => false), globaldata[3].prim)
-    #    # println(IOContext(stdout, :compact => false), globaldata[3].prim)
-    #    # residue = 0
-    #    # if iter == 1
-    #        # println("Starting StateUpdate")
-    #    # end
+
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                state_update(dist_globaldata[:L], dist_globaldata, configData, iter, res_old[:L], res_new[:L], rk, numPoints)
+                state_update(dist_globaldata[:L], dist_prim[:L], configData, iter, res_old[:L], res_new[:L], rk, numPoints)
             end
         end
     end
@@ -277,7 +337,7 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_dq, config
     return nothing
 end
 
-@inline function q_variables(loc_globaldata, globaldata, loc_q)
+@inline function q_variables(loc_globaldata, loc_q)
     for (idx, itm) in enumerate(loc_globaldata)
         rho = itm.prim[1]
         u1 = itm.prim[2]
@@ -287,16 +347,16 @@ end
         beta = 0.5 * (rho / pr)
         loc_globaldata[idx].q[1] = log(rho) + log(beta) * 2.5 - (beta * ((u1 * u1) + (u2 * u2)))
         two_times_beta = 2.0 * beta
-
         loc_globaldata[idx].q[2] = (two_times_beta * u1)
         loc_globaldata[idx].q[3] = (two_times_beta * u2)
         loc_globaldata[idx].q[4] = -two_times_beta
-        loc_q[idx].q = loc_globaldata[idx].q
+
+        @. loc_q[idx].q = loc_globaldata[idx].q
     end
     return nothing
 end
 
-function q_var_derivatives(loc_globaldata, globaldata, loc_dq, loc_ghost_holder, configData)
+function q_var_derivatives(loc_globaldata, loc_dq, loc_max_q, loc_min_q, loc_ghost_holder, configData)
     sum_delx_delq = zeros(Float64, 4)
     sum_dely_delq = zeros(Float64, 4)
     dist_length = length(loc_globaldata)
@@ -314,6 +374,7 @@ function q_var_derivatives(loc_globaldata, globaldata, loc_dq, loc_ghost_holder,
             loc_globaldata[idx].max_q[i] = loc_globaldata[idx].q[i]
             loc_globaldata[idx].min_q[i] = loc_globaldata[idx].q[i]
         end
+
         for conn in itm.conn
             if conn <= dist_length
                 globaldata_conn = loc_globaldata[conn]
@@ -342,12 +403,14 @@ function q_var_derivatives(loc_globaldata, globaldata, loc_dq, loc_ghost_holder,
                 end
             end
         end
+        @. loc_max_q[idx].max_q = loc_globaldata[idx].max_q
+        @. loc_min_q[idx].min_q = loc_globaldata[idx].min_q
         det = (sum_delx_sqr * sum_dely_sqr) - (sum_delx_dely * sum_delx_dely)
         one_by_det = 1.0 / det
         loc_globaldata[idx].dq[1] = @. one_by_det * (sum_delx_delq * sum_dely_sqr - sum_dely_delq * sum_delx_dely)
         loc_globaldata[idx].dq[2] = @. one_by_det * (sum_dely_delq * sum_delx_sqr - sum_delx_delq * sum_delx_dely)
-        loc_dq[idx].dq[1] = loc_globaldata[idx].dq[1]
-        loc_dq[idx].dq[2] = loc_globaldata[idx].dq[2]
+        @. loc_dq[idx].dq = loc_globaldata[idx].dq
+        # loc_dq[idx].dq[2] = loc_globaldata[idx].dq[2]
         # globaldata[idx].dq = [tempsumx, tempsumy]
     end
     # println(IOContext(stdout, :compact => false), globaldata[3].dq)
@@ -390,4 +453,23 @@ end
 #             ghost_holder[i][iter] = dist_globaldata[ghost_holder[i][iter].globalID]
 #         end
 #     end
+# end
+
+# @inline function updateLocalGhostPrimOld(loc_ghost_holder, dist_globaldata)
+#     localkeys = keys(loc_ghost_holder[1])
+#     # println(localkeys)
+#     for iter in localkeys
+#         #Dict To Array Equality
+#         temp = dist_globaldata[loc_ghost_holder[1][iter].globalID]
+#         # loc_ghost_holder[1][iter].flux_res = temp.flux_res
+#         # loc_ghost_holder[1][iter].prim_old = temp.prim_old
+#         # loc_ghost_holder[1][iter].delta = temp.delta
+#         # loc_ghost_holder[1][iter].dq = temp.dq
+#         # loc_ghost_holder[1][iter].prim = temp.prim
+#         # if iter == 6305
+#         #     print("Ghost>> ")
+#         #     println(loc_ghost_holder[1][iter].prim)
+#         # end
+#     end
+#     return nothing
 # end

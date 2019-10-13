@@ -1,14 +1,14 @@
-function outer_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k)
+function wall_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k)
 
-    power::Float64 = configData["core"]["power"]
-    limiter_flag::Float64 = configData["core"]["limiter_flag"]
+    power::Float64 = configData["core"]["power"]::Float64
+    limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
 
     sum_delx_sqr = zero(Float64)
     sum_dely_sqr = zero(Float64)
     sum_delx_dely = zero(Float64)
 
-    sum_delx_delf = zeros(Float64,4)
-    sum_dely_delf = zeros(Float64,4)
+    sum_delx_delf = zeros(Float64, 4)
+    sum_dely_delf = zeros(Float64, 4)
 
     x_i = loc_globaldata[idx].x
     y_i = loc_globaldata[idx].y
@@ -16,13 +16,14 @@ function outer_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length
     nx = loc_globaldata[idx].nx
     ny = loc_globaldata[idx].ny
 
-    tx = ny
-    ty = -nx
+    tx::Float64 = ny
+    ty::Float64 = -nx
 
     G_i = zeros(Float64,4)
     G_k = zeros(Float64,4)
     result = zeros(Float64,4)
-
+    # phi_i = zeros(Float64,4)
+    # phi_k = zeros(Float64,4)
 
     for itm in loc_globaldata[idx].xpos_conn
 
@@ -41,25 +42,37 @@ function outer_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length
         deln = delx*nx + dely*ny
 
         dist = hypot(dels, deln)
-        weights = dist ^ power
+        weights = dist^power
 
         dels_weights = dels*weights
         deln_weights = deln*weights
 
         sum_delx_sqr = sum_delx_sqr + dels*dels_weights
         sum_dely_sqr = sum_dely_sqr + deln*deln_weights
-
         sum_delx_dely = sum_delx_dely + dels*deln_weights
 
-        qtilde_i = @. loc_globaldata[idx].q - 0.5*(delx*loc_globaldata[idx].dq[1] + dely*loc_globaldata[idx].dq[2])
-        qtilde_k = @. globaldata_itm.q - 0.5*(delx*globaldata_itm.dq[1] + dely*globaldata_itm.dq[2])
+        qtilde_i = @. loc_globaldata[idx].q - 0.5*(delx * loc_globaldata[idx].dq[1] + dely * loc_globaldata[idx].dq[2])
+        qtilde_k = @. globaldata_itm.q - 0.5*(delx * globaldata_itm.dq[1] + dely * globaldata_itm.dq[2])
+
+        # if idx == 3
+        #     println(IOContext(stdout, :compact => false), itm)
+        #     println(IOContext(stdout, :compact => false), qtilde_k)
+        # end
 
         if limiter_flag == 1
-            venkat_limiter(qtilde_i, loc_globaldata, idx, configData, phi_i)
-            venkat_limiter(qtilde_k, loc_globaldata, idx, configData, phi_k)
+            venkat_limiter(qtilde_i, loc_globaldata[idx], configData, phi_i)
+            venkat_limiter(qtilde_k, globaldata_itm, configData, phi_k)
             @. qtilde_i = loc_globaldata[idx].q - 0.5 * phi_i * (delx*loc_globaldata[idx].dq[1] + dely*loc_globaldata[idx].dq[2])
             @. qtilde_k = globaldata_itm.q - 0.5 * phi_k * (delx*globaldata_itm.dq[1] + dely*globaldata_itm.dq[2])
         end
+
+        # if idx == 3
+        #     println(IOContext(stdout, :compact => false), itm)
+        #     println(IOContext(stdout, :compact => false), phi_i)
+        #     println(IOContext(stdout, :compact => false), phi_k)
+        #     println(IOContext(stdout, :compact => false), qtilde_k)
+        # end
+
                 #if limiter_flag == 2
         #    maxi = max_q_values(globaldata, idx)
         #    mini = min_q_values(globaldata, idx)
@@ -79,12 +92,55 @@ function outer_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length
         #        end
         #    end
         #end
+        # if idx == 76
+        #     println("qtile_i ", qtilde_i)
+        #     println("qtile_k ", qtilde_k)
+        # end
+        if idx == 100
+            flag = 0
+        else
+            flag = 1
+        end
+
+        # if idx == 3
+        #     println(IOContext(stdout, :compact => false), result)
+        # end
         qtilde_to_primitive(result, qtilde_i, configData)
-        flux_quad_GxIII(G_i, nx, ny, result[1], result[2], result[3], result[4])
-
+        # if idx == 3
+        #     println(IOContext(stdout, :compact => false), itm)
+        #     println(IOContext(stdout, :compact => false), result)
+        # end
+        flux_quad_GxII(G_i, nx, ny, result[1], result[2], result[3], result[4], flag)
+        # if idx == 3
+        #     println(IOContext(stdout, :compact => false), result)
+        # end
         qtilde_to_primitive(result, qtilde_k, configData)
-        flux_quad_GxIII(G_k, nx, ny, result[1], result[2], result[3], result[4])
-
+        # if idx == 3
+        #     println(IOContext(stdout, :compact => false), result)
+        # end
+        flux_quad_GxII(G_k, nx, ny, result[1], result[2], result[3], result[4], flag)
+        # if idx == 100
+        #     println("****")
+        #     println(IOContext(stdout, :compact => false), phi_i)
+        #     println(IOContext(stdout, :compact => false), phi_k)
+        #     println(IOContext(stdout, :compact => false), qtilde_i)
+        #     println(IOContext(stdout, :compact => false), qtilde_k)
+        #     println(IOContext(stdout, :compact => false), itm)
+        #     println(IOContext(stdout, :compact => false), result)
+        #     println(IOContext(stdout, :compact => false), G_i)
+        #     println(IOContext(stdout, :compact => false), G_k)
+        #     # println(IOContext(stdout, :compact => false), dels_weights)
+        #     # println(IOContext(stdout, :compact => false), deln_weights)
+        #     println("****")
+        # end
+        # if idx == 3
+        #     println(IOContext(stdout, :compact => false), itm)
+        #     println(IOContext(stdout, :compact => false), result)
+        #     println(IOContext(stdout, :compact => false), G_i)
+        #     println(IOContext(stdout, :compact => false), G_k)
+        #     # println(IOContext(stdout, :compact => false), dels_weights)
+        #     # println(IOContext(stdout, :compact => false), deln_weights)
+        # end
         for i in 1:4
             sum_delx_delf[i] += (G_k[i] - G_i[i]) * dels_weights
             sum_dely_delf[i] += (G_k[i] - G_i[i]) * deln_weights
@@ -92,12 +148,23 @@ function outer_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length
     end
 
     det = @. sum_delx_sqr*sum_dely_sqr - sum_delx_dely*sum_delx_dely
-    one_by_det = 1 / det
-
+    one_by_det = 1.0 / det
+    # if idx == 3
+    #     println(IOContext(stdout, :compact => false), "===Gx===")
+    #     # println(IOContext(stdout, :compact => false), sum_delx_sqr)
+    #     # println(IOContext(stdout, :compact => false), sum_dely_sqr)
+    #     # println(IOContext(stdout, :compact => false), sum_delx_dely)
+    #     # println(IOContext(stdout, :compact => false), det)
+    #     # println(IOContext(stdout, :compact => false), one_by_det)
+    #     println(IOContext(stdout, :compact => false), sum_delx_delf)
+    #     println(IOContext(stdout, :compact => false), sum_dely_delf)
+    #     println(IOContext(stdout, :compact => false), G)
+    #     println()
+    # end
     return @. (sum_delx_delf*sum_dely_sqr - sum_dely_delf*sum_delx_dely)*one_by_det
 end
 
-function outer_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k)
+function wall_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k)
 
     power::Float64 = configData["core"]["power"]::Float64
     limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
@@ -121,10 +188,10 @@ function outer_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length
     G_i = zeros(Float64,4)
     G_k = zeros(Float64,4)
     result = zeros(Float64,4)
-
+    # phi_i = zeros(Float64,4)
+    # phi_k = zeros(Float64,4)
 
     for itm in loc_globaldata[idx].xneg_conn
-
         if itm <= dist_length
             globaldata_itm = loc_globaldata[itm]
         else
@@ -140,7 +207,7 @@ function outer_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length
         deln = delx*nx + dely*ny
 
         dist = hypot(dels, deln)
-        weights = dist ^ power
+        weights = dist^power
 
         dels_weights = dels*weights
         deln_weights = deln*weights
@@ -154,13 +221,13 @@ function outer_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length
         qtilde_k = @. globaldata_itm.q - 0.5*(delx*globaldata_itm.dq[1] + dely*globaldata_itm.dq[2])
 
         if limiter_flag == 1
-            venkat_limiter(qtilde_i, loc_globaldata, idx, configData, phi_i)
-            venkat_limiter(qtilde_k, loc_globaldata, idx, configData, phi_k)
+            venkat_limiter(qtilde_i, loc_globaldata[idx], configData, phi_i)
+            venkat_limiter(qtilde_k, globaldata_itm, configData, phi_k)
             @. qtilde_i = loc_globaldata[idx].q - 0.5 * phi_i * (delx*loc_globaldata[idx].dq[1] + dely*loc_globaldata[idx].dq[2])
             @. qtilde_k = globaldata_itm.q - 0.5 * phi_k * (delx*globaldata_itm.dq[1] + dely*globaldata_itm.dq[2])
         end
 
-                #if limiter_flag == 2
+        #if limiter_flag == 2
         #    maxi = max_q_values(globaldata, idx)
         #    mini = min_q_values(globaldata, idx)
 #
@@ -180,22 +247,23 @@ function outer_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length
         #    end
         #end
         qtilde_to_primitive(result, qtilde_i, configData)
-        flux_quad_GxIV(G_i, nx, ny, result[1], result[2], result[3], result[4])
+        flux_quad_GxI(G_i, nx, ny, result[1], result[2], result[3], result[4])
 
         qtilde_to_primitive(result, qtilde_k, configData)
-        flux_quad_GxIV(G_k, nx, ny, result[1], result[2], result[3], result[4])
+        flux_quad_GxI(G_k, nx, ny, result[1], result[2], result[3], result[4])
 
         for i in 1:4
             sum_delx_delf[i] += (G_k[i] - G_i[i]) * dels_weights
             sum_dely_delf[i] += (G_k[i] - G_i[i]) * deln_weights
         end
+
     end
     det = @. sum_delx_sqr*sum_dely_sqr - sum_delx_dely*sum_delx_dely
-    one_by_det = 1 / det
+    one_by_det = 1.0 / det
     return @. (sum_delx_delf*sum_dely_sqr - sum_dely_delf*sum_delx_dely)*one_by_det
 end
 
-function outer_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k)
+function wall_dGy_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k)
 
     power::Float64 = configData["core"]["power"]::Float64
     limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
@@ -219,9 +287,11 @@ function outer_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length
     G_i = zeros(Float64,4)
     G_k = zeros(Float64,4)
     result = zeros(Float64,4)
+    # phi_i = zeros(Float64,4)
+    # phi_k = zeros(Float64,4)
 
+    for itm in loc_globaldata[idx].yneg_conn
 
-    for itm in loc_globaldata[idx].ypos_conn
         if itm <= dist_length
             globaldata_itm = loc_globaldata[itm]
         else
@@ -237,7 +307,7 @@ function outer_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length
         deln = delx*nx + dely*ny
 
         dist = hypot(dels, deln)
-        weights = dist ^ power
+        weights = dist^power
 
         dels_weights = dels*weights
         deln_weights = deln*weights
@@ -251,8 +321,8 @@ function outer_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length
         qtilde_k = @. globaldata_itm.q - 0.5*(delx*globaldata_itm.dq[1] + dely*globaldata_itm.dq[2])
 
         if limiter_flag == 1
-            venkat_limiter(qtilde_i, loc_globaldata, idx, configData, phi_i)
-            venkat_limiter(qtilde_k, loc_globaldata, idx, configData, phi_k)
+            venkat_limiter(qtilde_i, loc_globaldata[idx], configData, phi_i)
+            venkat_limiter(qtilde_k, globaldata_itm, configData, phi_k)
             @. qtilde_i = loc_globaldata[idx].q - 0.5 * phi_i * (delx*loc_globaldata[idx].dq[1] + dely*loc_globaldata[idx].dq[2])
             @. qtilde_k = globaldata_itm.q - 0.5 * phi_k * (delx*globaldata_itm.dq[1] + dely*globaldata_itm.dq[2])
         end
@@ -276,26 +346,31 @@ function outer_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length
         #    end
         #end
         qtilde_to_primitive(result, qtilde_i, configData)
-        flux_Gyp(G_i, nx, ny, result[1], result[2], result[3], result[4])
+        flux_Gyn(G_i, nx, ny, result[1], result[2], result[3], result[4])
 
         qtilde_to_primitive(result, qtilde_k, configData)
-        flux_Gyp(G_k, nx, ny, result[1], result[2], result[3], result[4])
+        flux_Gyn(G_k, nx, ny, result[1], result[2], result[3], result[4])
 
-        # print(sum_delx_delf)
-        # print(" ")
-        # print(G_k)
-        # print(" ")
-        # print(G_i * dels_weights)
-        # print("\n")
         for i in 1:4
             sum_delx_delf[i] += (G_k[i] - G_i[i]) * dels_weights
             sum_dely_delf[i] += (G_k[i] - G_i[i]) * deln_weights
         end
-
+        # if idx == 3
+        #     println(IOContext(stdout, :compact => false), itm)
+        #     println(IOContext(stdout, :compact => false), result)
+        #     println(IOContext(stdout, :compact => false), G_i)
+        #     println(IOContext(stdout, :compact => false), G_k)
+        # end
     end
+
     det = @. sum_delx_sqr*sum_dely_sqr - sum_delx_dely*sum_delx_dely
-
-    one_by_det = 1 / det
-
+    one_by_det = 1.0 / det
+    # if idx == 3
+    #     println(IOContext(stdout, :compact => false), "===Gx===")
+    #     println(IOContext(stdout, :compact => false), sum_delx_delf)
+    #     println(IOContext(stdout, :compact => false), sum_dely_delf)
+    #     # println(IOContext(stdout, :compact => false), G)
+    #     # println()
+    # end
     return @. (sum_dely_delf*sum_delx_sqr - sum_delx_delf*sum_delx_dely)*one_by_det
 end

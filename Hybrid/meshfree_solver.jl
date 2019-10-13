@@ -3,10 +3,10 @@ function main()
     configData = getConfig()
     wallpts, Interiorpts, outerpts, shapepts = 0,0,0,0
 
-    file_name = string(ARGS[2])
-    folder_name = string(ARGS[3])
+    # file_name = string(ARGS[2])
+    folder_name = string(ARGS[2])
 
-    numPoints = returnFileLength(file_name)
+    numPoints = findTotalPoints(folder_name)
     println(numPoints)
     # globaldata = Array{Point,1}(undef, numPoints)
     # table = Array{Int32,1}(undef, numPoints)
@@ -267,11 +267,11 @@ function main()
     # close(file)
 
     println("! Write To Files")
-    @sync for ip in procs(dist_globaldata)
-        @spawnat ip begin
-            writeToFile(dist_globaldata[:L], numPoints)
-        end
-    end
+    # @sync for ip in procs(dist_globaldata)
+    #     @spawnat ip begin
+    #         writeToFile(dist_globaldata[:L], numPoints)
+    #     end
+    # end
 
     println("! Close Distributed Arrays")
     # d_closeall()
