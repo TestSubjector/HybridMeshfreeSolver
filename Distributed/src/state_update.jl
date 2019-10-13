@@ -1,5 +1,5 @@
 import SpecialFunctions
-function func_delta(loc_globaldata, globaldata, loc_ghost_holder, configData, numPoints)
+function func_delta(loc_globaldata, loc_ghost_holder, configData, numPoints)
     cfl = configData["core"]["cfl"]::Float64
     # updateLocalGhost(loc_ghost_holder, globaldata)
     dist_length = length(loc_globaldata)
@@ -33,7 +33,7 @@ function func_delta(loc_globaldata, globaldata, loc_ghost_holder, configData, nu
     return nothing
 end
 
-function state_update(loc_globaldata, globaldata, configData, iter, res_old, res_new, rk, numPoints)
+function state_update(loc_globaldata, loc_prim, configData, iter, res_old, res_new, rk, numPoints)
     max_res = zero(Float64)
     sum_res_sqr = zeros(Float64, 1)
     U = zeros(Float64, 4)
@@ -43,13 +43,16 @@ function state_update(loc_globaldata, globaldata, configData, iter, res_old, res
     for (itm, _) in enumerate(loc_globaldata)
         if loc_globaldata[itm].flag_1 == 0
             fill!(U, 0.0)
-            state_update_wall(loc_globaldata, itm, max_res, sum_res_sqr, U, Uold, rk)
+            state_update_wall(loc_globaldata, loc_prim, itm, max_res, sum_res_sqr, U, Uold, rk)
+            # loc_prim[itm].prim = loc_globaldata[itm].prim
         elseif loc_globaldata[itm].flag_1 == 2
             fill!(U, 0.0)
-            state_update_outer(loc_globaldata, configData, itm, max_res, sum_res_sqr, U, Uold, rk)
+            state_update_outer(loc_globaldata, loc_prim, configData, itm, max_res, sum_res_sqr, U, Uold, rk)
+            # loc_prim[itm].prim = loc_globaldata[itm].prim
         elseif loc_globaldata[itm].flag_1 == 1
             fill!(U, 0.0)
-            state_update_interior(loc_globaldata, itm, max_res, sum_res_sqr, U, Uold, rk)
+            state_update_interior(loc_globaldata, loc_prim, itm, max_res, sum_res_sqr, U, Uold, rk)
+            # loc_prim[itm].prim = loc_globaldata[itm].prim
         end
     end
     # println(sum_res_sqr[1])
@@ -75,7 +78,7 @@ function state_update(loc_globaldata, globaldata, configData, iter, res_old, res
     return  nothing
 end
 
-function state_update_wall(globaldata, itm, max_res, sum_res_sqr, U, Uold, rk)
+function state_update_wall(globaldata, loc_prim, itm, max_res, sum_res_sqr, U, Uold, rk)
     nx = globaldata[itm].nx
     ny = globaldata[itm].ny
     # if itm == 2
@@ -113,13 +116,15 @@ function state_update_wall(globaldata, itm, max_res, sum_res_sqr, U, Uold, rk)
     globaldata[itm].prim[2] = U[2]*temp
     globaldata[itm].prim[3] = U[3]*temp
     globaldata[itm].prim[4] = (0.4*U[4]) - ((0.2 * temp) * (U[2] * U[2] + U[3] * U[3]))
+    @. loc_prim[itm].prim = globaldata[itm].prim
     # if itm == 2
     #     println("Prim1.01a2.5")
     #     println(IOContext(stdout, :compact => false), globaldata[1].prim)
     # end
+    return nothing
 end
 
-@inline function state_update_outer(globaldata, configData, itm, max_res, sum_res_sqr, U, Uold, rk)
+@inline function state_update_outer(globaldata, loc_prim, configData, itm, max_res, sum_res_sqr, U, Uold, rk)
     nx = globaldata[itm].nx
     ny = globaldata[itm].ny
     conserved_vector_Ubar(globaldata, itm, nx, ny, configData, U)
@@ -138,9 +143,11 @@ end
     globaldata[itm].prim[2] = U[2]*temp
     globaldata[itm].prim[3] = U[3]*temp
     globaldata[itm].prim[4] = (0.4*U[4]) - (0.2*temp)*(U[2]*U[2] + U[3]*U[3])
+    @. loc_prim[itm].prim = globaldata[itm].prim
+    return nothing
 end
 
-@inline function state_update_interior(globaldata, itm, max_res, sum_res_sqr, U, Uold, rk)
+@inline function state_update_interior(globaldata, loc_prim,itm, max_res, sum_res_sqr, U, Uold, rk)
     nx = globaldata[itm].nx
     ny = globaldata[itm].ny
     primitive_to_conserved(globaldata, itm, nx, ny, U)
@@ -181,6 +188,8 @@ end
     globaldata[itm].prim[2] = U[2]*temp
     globaldata[itm].prim[3] = U[3]*temp
     globaldata[itm].prim[4] = (0.4*U[4]) - (0.2*temp)*(U[2]*U[2] + U[3]*U[3])
+    @. loc_prim[itm].prim = globaldata[itm].prim
+    return nothing
 end
 
 @inline function primitive_to_conserved(globaldata, itm, nx, ny, U)
@@ -199,6 +208,7 @@ end
     #     println("U")
     #     println(IOContext(stdout, :compact => false), U)
     # end
+    return nothing
 end
 
 @inline function primitive_to_conserved_old(globaldata, itm, nx, ny, U)
@@ -217,6 +227,7 @@ end
     #     println("U")
     #     println(IOContext(stdout, :compact => false), U)
     # end
+    return nothing
 end
 
 @inline function conserved_vector_Ubar(globaldata, itm, nx, ny, configData, Ubar)

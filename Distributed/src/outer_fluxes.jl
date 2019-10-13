@@ -55,8 +55,8 @@ function outer_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length
         qtilde_k = @. globaldata_itm.q - 0.5*(delx*globaldata_itm.dq[1] + dely*globaldata_itm.dq[2])
 
         if limiter_flag == 1
-            venkat_limiter(qtilde_i, loc_globaldata, idx, configData, phi_i)
-            venkat_limiter(qtilde_k, loc_globaldata, idx, configData, phi_k)
+            venkat_limiter(qtilde_i, loc_globaldata[idx], configData, phi_i)
+            venkat_limiter(qtilde_k, globaldata_itm, configData, phi_k)
             @. qtilde_i = loc_globaldata[idx].q - 0.5 * phi_i * (delx*loc_globaldata[idx].dq[1] + dely*loc_globaldata[idx].dq[2])
             @. qtilde_k = globaldata_itm.q - 0.5 * phi_k * (delx*globaldata_itm.dq[1] + dely*globaldata_itm.dq[2])
         end
@@ -154,8 +154,8 @@ function outer_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length
         qtilde_k = @. globaldata_itm.q - 0.5*(delx*globaldata_itm.dq[1] + dely*globaldata_itm.dq[2])
 
         if limiter_flag == 1
-            venkat_limiter(qtilde_i, loc_globaldata, idx, configData, phi_i)
-            venkat_limiter(qtilde_k, loc_globaldata, idx, configData, phi_k)
+            venkat_limiter(qtilde_i, loc_globaldata[idx], configData, phi_i)
+            venkat_limiter(qtilde_k, globaldata_itm, configData, phi_k)
             @. qtilde_i = loc_globaldata[idx].q - 0.5 * phi_i * (delx*loc_globaldata[idx].dq[1] + dely*loc_globaldata[idx].dq[2])
             @. qtilde_k = globaldata_itm.q - 0.5 * phi_k * (delx*globaldata_itm.dq[1] + dely*globaldata_itm.dq[2])
         end
@@ -251,8 +251,8 @@ function outer_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length
         qtilde_k = @. globaldata_itm.q - 0.5*(delx*globaldata_itm.dq[1] + dely*globaldata_itm.dq[2])
 
         if limiter_flag == 1
-            venkat_limiter(qtilde_i, loc_globaldata, idx, configData, phi_i)
-            venkat_limiter(qtilde_k, loc_globaldata, idx, configData, phi_k)
+            venkat_limiter(qtilde_i, loc_globaldata[idx], configData, phi_i)
+            venkat_limiter(qtilde_k, globaldata_itm, configData, phi_k)
             @. qtilde_i = loc_globaldata[idx].q - 0.5 * phi_i * (delx*loc_globaldata[idx].dq[1] + dely*loc_globaldata[idx].dq[2])
             @. qtilde_k = globaldata_itm.q - 0.5 * phi_k * (delx*globaldata_itm.dq[1] + dely*globaldata_itm.dq[2])
         end

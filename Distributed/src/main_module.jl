@@ -66,6 +66,14 @@ mutable struct TempDQ
     dq::Array{Array{Float64,1},1}
 end
 
+mutable struct TempMaxQ
+    max_q::Array{Float64,1}
+end
+
+mutable struct TempMinQ
+    min_q::Array{Float64,1}
+end
+
 mutable struct TempPrim
     prim::Array{Float64,1}
 end

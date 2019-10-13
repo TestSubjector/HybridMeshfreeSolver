@@ -17,7 +17,7 @@ function createGlobalLocalMapIndex(global_local_map_index, global_local_direct_i
         else
             filename = folder_name * "/" * "partGrid" * string(iter-1)
         end
-        println(filename)
+        # println(filename)
         data = read(filename, String)
         splitdata = @view split(data, "\n")[1:end-1]
         itmdata = split(splitdata[1])
@@ -48,7 +48,7 @@ function readGhostFile(folder_name::String, ghost_holder, global_local_map_index
         else
             filename = folder_name * "/" * "partGrid" * string(iter-1)
         end
-        println(filename)
+        # println(filename)
         data = read(filename, String)
         splitdata = @view split(data, "\n")[1:end-1]
         ghost_holder[iter] = Dict{Int64,Point}()
@@ -66,8 +66,8 @@ function readGhostFile(folder_name::String, ghost_holder, global_local_map_index
 end
 
 function readDistribuedFile(folder_name::String, defprimal, p, global_local_map_index)
-    println("Reading multiple files")
-    println(folder_name)
+    # println("Reading multiple files")
+    # println(folder_name)
     iter = p - 1
     if iter - 1 < 10
         filename = folder_name * "/" * "partGrid000" * string(iter-1)
@@ -115,8 +115,7 @@ function readDistribuedFile(folder_name::String, defprimal, p, global_local_map_
 end
 
 function readDistribuedFileQuadtree(folder_name::String, defprimal, p, global_local_map_index)
-    println("Reading multiple files")
-    println(folder_name)
+    # println(folder_name)
     iter = p - 1
     if iter - 1 < 10
         filename = folder_name * "/" * "partGrid000" * string(iter-1)
@@ -127,7 +126,7 @@ function readDistribuedFileQuadtree(folder_name::String, defprimal, p, global_lo
     else
         filename = folder_name * "/" * "partGrid" * string(iter-1)
     end
-    println(filename)
+    # println(filename)
     data = read(filename, String)
     splitdata = @view split(data, "\n")[1:end-1]
     itmdata = split(splitdata[1])
@@ -164,7 +163,7 @@ function readDistribuedFileQuadtree(folder_name::String, defprimal, p, global_lo
 end
 
 function readDistribuedFileQ(folder_name::String, defprimal, p, global_local_map_index)
-    println("Reading multiple files for Q")
+
     # println(folder_name)
     iter = p - 1
     if iter - 1 < 10
@@ -196,7 +195,7 @@ function readDistribuedFileQ(folder_name::String, defprimal, p, global_local_map
 end
 
 function readDistribuedFileDQ(folder_name::String, defprimal, p, global_local_map_index)
-    println("Reading multiple files for DQ")
+
     # println(folder_name)
     iter = p - 1
     if iter - 1 < 10
@@ -221,6 +220,97 @@ function readDistribuedFileDQ(folder_name::String, defprimal, p, global_local_ma
         elseif idx <= local_point_count + 1
             # itmdata = split(itm)
             local_points_holder[idx-1] = TempDQ(Array{Array{Float64,1},1}(undef, 2))
+        end
+    end
+    return local_points_holder
+end
+
+function readDistribuedFileMaxQ(folder_name::String, defprimal, p, global_local_map_index)
+
+    # println(folder_name)
+    iter = p - 1
+    if iter - 1 < 10
+        filename = folder_name * "/" * "partGrid000" * string(iter-1)
+    elseif iter - 1 < 100
+        filename = folder_name * "/" * "partGrid00" * string(iter-1)
+    elseif iter - 1 < 1000
+        filename = folder_name * "/" * "partGrid0" * string(iter-1)
+    else
+        filename = folder_name * "/" * "partGrid" * string(iter-1)
+    end
+    # println(filename)
+    data = read(filename, String)
+    splitdata = @view split(data, "\n")[1:end-1]
+    itmdata = split(splitdata[1])
+    local_point_count = parse(Int,itmdata[3])
+
+    local_points_holder = Array{TempMaxQ,1}(undef, local_point_count)
+    for idx in 1:local_point_count + 1
+        if idx == 1
+            continue
+        elseif idx <= local_point_count + 1
+            # itmdata = split(itm)
+            local_points_holder[idx-1] = TempMaxQ(zeros(Float64, 4))
+        end
+    end
+    return local_points_holder
+end
+
+function readDistribuedFileMinQ(folder_name::String, defprimal, p, global_local_map_index)
+    # println(folder_name)
+    iter = p - 1
+    if iter - 1 < 10
+        filename = folder_name * "/" * "partGrid000" * string(iter-1)
+    elseif iter - 1 < 100
+        filename = folder_name * "/" * "partGrid00" * string(iter-1)
+    elseif iter - 1 < 1000
+        filename = folder_name * "/" * "partGrid0" * string(iter-1)
+    else
+        filename = folder_name * "/" * "partGrid" * string(iter-1)
+    end
+    # println(filename)
+    data = read(filename, String)
+    splitdata = @view split(data, "\n")[1:end-1]
+    itmdata = split(splitdata[1])
+    local_point_count = parse(Int,itmdata[3])
+
+    local_points_holder = Array{TempMinQ,1}(undef, local_point_count)
+    for idx in 1:local_point_count + 1
+        if idx == 1
+            continue
+        elseif idx <= local_point_count + 1
+            # itmdata = split(itm)
+            local_points_holder[idx-1] = TempMinQ(zeros(Float64, 4))
+        end
+    end
+    return local_points_holder
+end
+
+function readDistribuedFilePrim(folder_name::String, defprimal, p, global_local_map_index)
+    # println(folder_name)
+    iter = p - 1
+    if iter - 1 < 10
+        filename = folder_name * "/" * "partGrid000" * string(iter-1)
+    elseif iter - 1 < 100
+        filename = folder_name * "/" * "partGrid00" * string(iter-1)
+    elseif iter - 1 < 1000
+        filename = folder_name * "/" * "partGrid0" * string(iter-1)
+    else
+        filename = folder_name * "/" * "partGrid" * string(iter-1)
+    end
+    # println(filename)
+    data = read(filename, String)
+    splitdata = @view split(data, "\n")[1:end-1]
+    itmdata = split(splitdata[1])
+    local_point_count = parse(Int,itmdata[3])
+
+    local_points_holder = Array{TempPrim,1}(undef, local_point_count)
+    for idx in 1:local_point_count + 1
+        if idx == 1
+            continue
+        elseif idx <= local_point_count + 1
+            # itmdata = split(itm)
+            local_points_holder[idx-1] = TempPrim(zeros(Float64, 4))
         end
     end
     return local_points_holder
