@@ -39,12 +39,14 @@ end
     return nothing
 end
 
-@inline function updateLocalGhostDQ(loc_ghost_holder, dist_dq)
+@inline function updateLocalGhostDQ(loc_ghost_holder, dist_qpack)
     localkeys = keys(loc_ghost_holder[1])
     # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
-        @. loc_ghost_holder[1][iter].dq = dist_dq[loc_ghost_holder[1][iter].globalID].dq
+        @. loc_ghost_holder[1][iter].dq = dist_qpack[loc_ghost_holder[1][iter].globalID].dq
+        @. loc_ghost_holder[1][iter].max_q = dist_qpack[loc_ghost_holder[1][iter].globalID].max_q
+        @. loc_ghost_holder[1][iter].min_q = dist_qpack[loc_ghost_holder[1][iter].globalID].min_q
         # if iter == 63050000
         #     print("DQ>> ")
         #     println(loc_ghost_holder[1][iter])
@@ -244,7 +246,7 @@ function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
     return nothing
 end
 
-function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_dq, dist_max_q, dist_min_q, dist_prim, configData, res_old, res_new, numPoints)
+function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # print(" 111\n")
     @sync for ip in procs(dist_globaldata)
@@ -288,27 +290,27 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_dq, dist_m
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                q_var_derivatives(dist_globaldata[:L], dist_dq[:L], dist_max_q[:L], dist_min_q[:L], ghost_holder[:L], configData)
+                q_var_derivatives(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], configData)
             end
         end
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                updateLocalGhostDQ(ghost_holder[:L], dist_dq)
+                updateLocalGhostDQ(ghost_holder[:L], dist_qpack)
             end
         end
 
-        @sync for ip in procs(dist_globaldata)
-            @spawnat ip begin
-                updateLocalGhostMaxQ(ghost_holder[:L], dist_max_q)
-            end
-        end
+        # @sync for ip in procs(dist_globaldata)
+        #     @spawnat ip begin
+        #         updateLocalGhostMaxQ(ghost_holder[:L], dist_max_q)
+        #     end
+        # end
 
-        @sync for ip in procs(dist_globaldata)
-            @spawnat ip begin
-                updateLocalGhostMinQ(ghost_holder[:L], dist_min_q)
-            end
-        end
+        # @sync for ip in procs(dist_globaldata)
+        #     @spawnat ip begin
+        #         updateLocalGhostMinQ(ghost_holder[:L], dist_min_q)
+        #     end
+        # end
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
@@ -356,7 +358,7 @@ end
     return nothing
 end
 
-function q_var_derivatives(loc_globaldata, loc_dq, loc_max_q, loc_min_q, loc_ghost_holder, configData)
+function q_var_derivatives(loc_globaldata, loc_qpack, loc_ghost_holder, configData)
     sum_delx_delq = zeros(Float64, 4)
     sum_dely_delq = zeros(Float64, 4)
     dist_length = length(loc_globaldata)
@@ -403,14 +405,14 @@ function q_var_derivatives(loc_globaldata, loc_dq, loc_max_q, loc_min_q, loc_gho
                 end
             end
         end
-        @. loc_max_q[idx].max_q = loc_globaldata[idx].max_q
-        @. loc_min_q[idx].min_q = loc_globaldata[idx].min_q
+        @. loc_qpack[idx].max_q = loc_globaldata[idx].max_q
+        @. loc_qpack[idx].min_q = loc_globaldata[idx].min_q
         det = (sum_delx_sqr * sum_dely_sqr) - (sum_delx_dely * sum_delx_dely)
         one_by_det = 1.0 / det
         loc_globaldata[idx].dq[1] = @. one_by_det * (sum_delx_delq * sum_dely_sqr - sum_dely_delq * sum_delx_dely)
         loc_globaldata[idx].dq[2] = @. one_by_det * (sum_dely_delq * sum_delx_sqr - sum_delx_delq * sum_delx_dely)
-        @. loc_dq[idx].dq = loc_globaldata[idx].dq
-        # loc_dq[idx].dq[2] = loc_globaldata[idx].dq[2]
+        @. loc_qpack[idx].dq = loc_globaldata[idx].dq
+        # loc_qpack[idx].dq[2] = loc_globaldata[idx].dq[2]
         # globaldata[idx].dq = [tempsumx, tempsumy]
     end
     # println(IOContext(stdout, :compact => false), globaldata[3].dq)

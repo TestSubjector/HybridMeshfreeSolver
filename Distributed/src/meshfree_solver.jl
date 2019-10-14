@@ -56,20 +56,20 @@ function main()
     q_parts = reshape(q_parts, (nworkers()))
     dist_q = DArray(q_parts)
 
-    println("Reading multiple files for DQ")
-    dq_parts = [@spawnat p readDistribuedFileDQ(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
+    println("Reading multiple files for QPack")
+    dq_parts = [@spawnat p readDistribuedFileQPack(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
     dq_parts = reshape(dq_parts, (nworkers()))
-    dist_dq = DArray(dq_parts)
+    dist_qpack = DArray(dq_parts)
 
-    println("Reading multiple files for MaxQ")
-    max_q_parts = [@spawnat p readDistribuedFileMaxQ(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
-    max_q_parts = reshape(max_q_parts, (nworkers()))
-    dist_max_q = DArray(max_q_parts)
+    # println("Reading multiple files for MaxQ")
+    # max_q_parts = [@spawnat p readDistribuedFileMaxQ(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
+    # max_q_parts = reshape(max_q_parts, (nworkers()))
+    # dist_max_q = DArray(max_q_parts)
 
-    println("Reading multiple files for MinQ")
-    min_q_parts = [@spawnat p readDistribuedFileMinQ(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
-    min_q_parts = reshape(min_q_parts, (nworkers()))
-    dist_min_q = DArray(min_q_parts)
+    # println("Reading multiple files for MinQ")
+    # min_q_parts = [@spawnat p readDistribuedFileMinQ(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
+    # min_q_parts = reshape(min_q_parts, (nworkers()))
+    # dist_min_q = DArray(min_q_parts)
 
     println("Reading multiple files for Prim")
     prim_parts = [@spawnat p readDistribuedFilePrim(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
@@ -131,17 +131,17 @@ function main()
     # println("Size is: ", length(globaldata))
 
     println(Int(getConfig()["core"]["max_iters"]) + 1)
-    function run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_max_q, dist_min_q, dist_prim, configData, res_old, res_new, numPoints)
+    function run_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
         for i in 1:(Int(getConfig()["core"]["max_iters"]))
-            fpi_solver(i, ghost_holder, dist_globaldata, dist_q, dist_dq, dist_max_q, dist_min_q, dist_prim, configData, res_old, res_new, numPoints)
+            fpi_solver(i, ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
         end
     end
 
     res_old = dzeros(nworkers())
     res_new = dzeros(nworkers())
-    function test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_max_q, dist_min_q, dist_prim, configData, res_old, res_new, numPoints)
+    function test_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
         println("! Starting warmup function")
-        fpi_solver(1, ghost_holder, dist_globaldata, dist_q, dist_dq, dist_max_q, dist_min_q, dist_prim, configData, res_old, res_new, numPoints)
+        fpi_solver(1, ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
         # res_old =
         # Profile.clear_malloc_data()
         # @trace(fpi_solver(1, globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old), maxdepth = 3)
@@ -152,12 +152,12 @@ function main()
         # res_old[1] = 0.0
         println("! Starting main function")
         @timeit to "nest 4" begin
-            run_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_max_q, dist_min_q, dist_prim, configData, res_old, res_new, numPoints)
+            run_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
         end
     end
 
 
-    test_code(ghost_holder, dist_globaldata, dist_q, dist_dq, dist_max_q, dist_min_q, dist_prim, configData, res_old, res_new, numPoints)
+    test_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
     println("! Work Completed")
     # # println(to)
     open("../results/timer" * string(numPoints) * "_" * string(getConfig()["core"]["max_iters"]) *
@@ -209,10 +209,10 @@ function main()
     # end
     # close(file)
     close(ghost_holder)
-    close(dist_dq)
+    close(dist_qpack)
     close(dist_q)
-    close(dist_max_q)
-    close(dist_min_q)
+    # close(dist_max_q)
+    # close(dist_min_q)
     close(dist_globaldata)
     close(dist_prim)
     close(res_old)
