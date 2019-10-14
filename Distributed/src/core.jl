@@ -39,44 +39,17 @@ end
     return nothing
 end
 
-@inline function updateLocalGhostDQ(loc_ghost_holder, dist_qpack)
+@inline function updateLocalGhostQPack(loc_ghost_holder, dist_qpack)
     localkeys = keys(loc_ghost_holder[1])
     # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
-        @. loc_ghost_holder[1][iter].dq = dist_qpack[loc_ghost_holder[1][iter].globalID].dq
-        @. loc_ghost_holder[1][iter].max_q = dist_qpack[loc_ghost_holder[1][iter].globalID].max_q
-        @. loc_ghost_holder[1][iter].min_q = dist_qpack[loc_ghost_holder[1][iter].globalID].min_q
+        merge_holder = dist_qpack[loc_ghost_holder[1][iter].globalID]
+        @. loc_ghost_holder[1][iter].dq = merge_holder.dq
+        @. loc_ghost_holder[1][iter].max_q = merge_holder.max_q
+        @. loc_ghost_holder[1][iter].min_q = merge_holder.min_q
         # if iter == 63050000
         #     print("DQ>> ")
-        #     println(loc_ghost_holder[1][iter])
-        # end
-    end
-    return nothing
-end
-
-@inline function updateLocalGhostMaxQ(loc_ghost_holder, dist_max_q)
-    localkeys = keys(loc_ghost_holder[1])
-    # println(localkeys)
-    for iter in localkeys
-        #Dict To Array Equality
-        @. loc_ghost_holder[1][iter].max_q = dist_max_q[loc_ghost_holder[1][iter].globalID].max_q
-        # if iter == 63050000
-        #     print("MaxQ>> ")
-        #     println(loc_ghost_holder[1][iter])
-        # end
-    end
-    return nothing
-end
-
-@inline function updateLocalGhostMinQ(loc_ghost_holder, dist_min_q)
-    localkeys = keys(loc_ghost_holder[1])
-    # println(localkeys)
-    for iter in localkeys
-        #Dict To Array Equality
-        @. loc_ghost_holder[1][iter].min_q = dist_min_q[loc_ghost_holder[1][iter].globalID].min_q
-        # if iter == 63050000
-        #     print("MinQ>> ")
         #     println(loc_ghost_holder[1][iter])
         # end
     end
@@ -296,21 +269,9 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dis
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                updateLocalGhostDQ(ghost_holder[:L], dist_qpack)
+                updateLocalGhostQPack(ghost_holder[:L], dist_qpack)
             end
         end
-
-        # @sync for ip in procs(dist_globaldata)
-        #     @spawnat ip begin
-        #         updateLocalGhostMaxQ(ghost_holder[:L], dist_max_q)
-        #     end
-        # end
-
-        # @sync for ip in procs(dist_globaldata)
-        #     @spawnat ip begin
-        #         updateLocalGhostMinQ(ghost_holder[:L], dist_min_q)
-        #     end
-        # end
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
@@ -349,8 +310,8 @@ end
         beta = 0.5 * (rho / pr)
         loc_globaldata[idx].q[1] = log(rho) + log(beta) * 2.5 - (beta * ((u1 * u1) + (u2 * u2)))
         two_times_beta = 2.0 * beta
-        loc_globaldata[idx].q[2] = (two_times_beta * u1)
-        loc_globaldata[idx].q[3] = (two_times_beta * u2)
+        loc_globaldata[idx].q[2] = two_times_beta * u1
+        loc_globaldata[idx].q[3] = two_times_beta * u2
         loc_globaldata[idx].q[4] = -two_times_beta
 
         @. loc_q[idx].q = loc_globaldata[idx].q
