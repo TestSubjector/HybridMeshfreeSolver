@@ -1,6 +1,6 @@
 import SpecialFunctions
 function func_delta(loc_globaldata, loc_ghost_holder, configData, numPoints)
-    cfl = configData["core"]["cfl"]::Float64
+    cfl = configData["core"]["cfl"]
     # updateLocalGhost(loc_ghost_holder, globaldata)
     dist_length = length(loc_globaldata)
     # reduction = dist_length * (myid() - 2)
@@ -34,7 +34,6 @@ function func_delta(loc_globaldata, loc_ghost_holder, configData, numPoints)
 end
 
 function state_update(loc_globaldata, loc_prim, configData, iter, res_old, res_new, rk, numPoints)
-    max_res = zero(Float64)
     sum_res_sqr = zeros(Float64, 1)
     U = zeros(Float64, 4)
     Uold = zeros(Float64, 4)
@@ -43,15 +42,15 @@ function state_update(loc_globaldata, loc_prim, configData, iter, res_old, res_n
     for (itm, _) in enumerate(loc_globaldata)
         if loc_globaldata[itm].flag_1 == 0
             fill!(U, 0.0)
-            state_update_wall(loc_globaldata, loc_prim, itm, max_res, sum_res_sqr, U, Uold, rk)
+            state_update_wall(loc_globaldata, loc_prim, itm, sum_res_sqr, U, Uold, rk)
             # loc_prim[itm].prim = loc_globaldata[itm].prim
         elseif loc_globaldata[itm].flag_1 == 2
             fill!(U, 0.0)
-            state_update_outer(loc_globaldata, loc_prim, configData, itm, max_res, sum_res_sqr, U, Uold, rk)
+            state_update_outer(loc_globaldata, loc_prim, configData, itm, sum_res_sqr, U, Uold, rk)
             # loc_prim[itm].prim = loc_globaldata[itm].prim
         elseif loc_globaldata[itm].flag_1 == 1
             fill!(U, 0.0)
-            state_update_interior(loc_globaldata, loc_prim, itm, max_res, sum_res_sqr, U, Uold, rk)
+            state_update_interior(loc_globaldata, loc_prim, itm, sum_res_sqr, U, Uold, rk)
             # loc_prim[itm].prim = loc_globaldata[itm].prim
         end
     end
@@ -78,7 +77,7 @@ function state_update(loc_globaldata, loc_prim, configData, iter, res_old, res_n
     return  nothing
 end
 
-function state_update_wall(globaldata, loc_prim, itm, max_res, sum_res_sqr, U, Uold, rk)
+function state_update_wall(globaldata, loc_prim, itm, sum_res_sqr, U, Uold, rk)
     nx = globaldata[itm].nx
     ny = globaldata[itm].ny
     # if itm == 2
@@ -120,7 +119,7 @@ function state_update_wall(globaldata, loc_prim, itm, max_res, sum_res_sqr, U, U
     return nothing
 end
 
-@inline function state_update_outer(globaldata, loc_prim, configData, itm, max_res, sum_res_sqr, U, Uold, rk)
+@inline function state_update_outer(globaldata, loc_prim, configData, itm, sum_res_sqr, U, Uold, rk)
     nx = globaldata[itm].nx
     ny = globaldata[itm].ny
     conserved_vector_Ubar(globaldata, itm, nx, ny, configData, U)
@@ -143,7 +142,7 @@ end
     return nothing
 end
 
-@inline function state_update_interior(globaldata, loc_prim,itm, max_res, sum_res_sqr, U, Uold, rk)
+@inline function state_update_interior(globaldata, loc_prim,itm, sum_res_sqr, U, Uold, rk)
     nx = globaldata[itm].nx
     ny = globaldata[itm].ny
     primitive_to_conserved(globaldata, itm, nx, ny, U)
@@ -220,10 +219,10 @@ end
 end
 
 @inline function conserved_vector_Ubar(globaldata, itm, nx, ny, configData, Ubar)
-    Mach::Float64 = configData["core"]["mach"]::Float64
-    gamma::Float64 = configData["core"]["gamma"]::Float64
-    pr_inf::Float64 = configData["core"]["pr_inf"]::Float64
-    rho_inf::Float64 = configData["core"]["rho_inf"]::Float64
+    Mach = configData["core"]["mach"]
+    gamma = configData["core"]["gamma"]
+    pr_inf = configData["core"]["pr_inf"]
+    rho_inf = configData["core"]["rho_inf"]
     theta = calculateTheta(configData)
 
     u1_inf::Float64 = Mach*cos(theta)
@@ -274,10 +273,10 @@ end
 end
 
 @inline function conserved_vector_Ubar_old(globaldata, itm, nx, ny, configData, Ubar)
-    Mach::Float64 = configData["core"]["mach"]::Float64
-    gamma::Float64 = configData["core"]["gamma"]::Float64
-    pr_inf::Float64 = configData["core"]["pr_inf"]::Float64
-    rho_inf::Float64 = configData["core"]["rho_inf"]::Float64
+    Mach = configData["core"]["mach"]
+    gamma = configData["core"]["gamma"]
+    pr_inf = configData["core"]["pr_inf"]
+    rho_inf = configData["core"]["rho_inf"]
     theta = calculateTheta(configData)
 
     u1_inf::Float64 = Mach*cos(theta)

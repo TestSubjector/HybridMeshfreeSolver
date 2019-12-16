@@ -1,7 +1,7 @@
 function wall_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k)
 
-    power::Float64 = configData["core"]["power"]::Float64
-    limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
+    power = configData["core"]["power"]
+    limiter_flag = configData["core"]["limiter_flag"]
 
     sum_delx_sqr = zero(Float64)
     sum_dely_sqr = zero(Float64)
@@ -166,8 +166,8 @@ end
 
 function wall_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k)
 
-    power::Float64 = configData["core"]["power"]::Float64
-    limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
+    power = configData["core"]["power"]
+    limiter_flag = configData["core"]["limiter_flag"]
 
     sum_delx_sqr = zero(Float64)
     sum_dely_sqr = zero(Float64)
@@ -265,8 +265,8 @@ end
 
 function wall_dGy_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k)
 
-    power::Float64 = configData["core"]["power"]::Float64
-    limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
+    power = configData["core"]["power"]
+    limiter_flag = configData["core"]["limiter_flag"]
 
     sum_delx_sqr = zero(Float64)
     sum_dely_sqr = zero(Float64)
@@ -326,25 +326,7 @@ function wall_dGy_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length,
             @. qtilde_i = loc_globaldata[idx].q - 0.5 * phi_i * (delx*loc_globaldata[idx].dq[1] + dely*loc_globaldata[idx].dq[2])
             @. qtilde_k = globaldata_itm.q - 0.5 * phi_k * (delx*globaldata_itm.dq[1] + dely*globaldata_itm.dq[2])
         end
-                #if limiter_flag == 2
-        #    maxi = max_q_values(globaldata, idx)
-        #    mini = min_q_values(globaldata, idx)
-#
-        #    for i in 1:4
-        #        if qtilde_i[i] > maxi[i]
-        #            qtilde_i[i] = maxi[i]
-        #        end
-        #        if qtilde_i[i] < mini[i]
-        #            qtilde_i[i] = mini[i]
-        #        end
-        #        if qtilde_k[i] > maxi[i]
-        #            qtilde_k[i] = maxi[i]
-        #        end
-        #        if qtilde_k[i] < mini[i]
-        #            qtilde_k[i] = mini[i]
-        #        end
-        #    end
-        #end
+
         qtilde_to_primitive(result, qtilde_i, configData)
         flux_Gyn(G_i, nx, ny, result[1], result[2], result[3], result[4])
 

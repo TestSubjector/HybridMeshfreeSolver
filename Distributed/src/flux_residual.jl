@@ -45,6 +45,7 @@ end
 
 function interiorindices_flux_residual(loc_globaldata, globaldata, loc_ghost_holder, dist_length, configData, itm, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 	# for itm in interiorindices
+		Gxp, Gxn, Gyp, Gyn = 0,0,0,0
 		Gxp = interior_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 		Gxn = interior_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 		Gyp = interior_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)

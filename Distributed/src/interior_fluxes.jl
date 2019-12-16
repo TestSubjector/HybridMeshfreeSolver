@@ -1,7 +1,7 @@
 function interior_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 
-    power::Float64 = configData["core"]["power"]::Float64
-    limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
+    power = configData["core"]["power"]
+    limiter_flag = configData["core"]["limiter_flag"]
 
     sum_delx_sqr = zero(Float64)
     sum_dely_sqr = zero(Float64)
@@ -104,8 +104,8 @@ end
 
 function interior_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 
-    power::Float64 = configData["core"]["power"]::Float64
-    limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
+    power = configData["core"]["power"]
+    limiter_flag = configData["core"]["limiter_flag"]
 
     sum_delx_sqr = zero(Float64)
     sum_dely_sqr = zero(Float64)
@@ -225,8 +225,8 @@ end
 
 function interior_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 
-    power::Float64 = configData["core"]["power"]::Float64
-    limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
+    power = configData["core"]["power"]
+    limiter_flag = configData["core"]["limiter_flag"]
 
     sum_delx_sqr = zero(Float64)
     sum_dely_sqr = zero(Float64)
@@ -332,8 +332,8 @@ end
 
 function interior_dGy_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, idx, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
 
-    power::Float64 = configData["core"]["power"]::Float64
-    limiter_flag::Float64 = configData["core"]["limiter_flag"]::Float64
+    power = configData["core"]["power"]
+    limiter_flag = configData["core"]["limiter_flag"]
 
     sum_delx_sqr = zero(Float64)
     sum_dely_sqr = zero(Float64)

@@ -1,6 +1,6 @@
 function venkat_limiter(qtilde, globaldata_itm, configData, phi)
     # smallest_dist(globaldata, idx)
-    VL_CONST = configData["core"]["vl_const"]::Float64
+    VL_CONST = configData["core"]["vl_const"]
     ds = globaldata_itm.short_distance
     epsi = VL_CONST * ds
     epsi = epsi ^ 3

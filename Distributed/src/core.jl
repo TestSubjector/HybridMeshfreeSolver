@@ -75,11 +75,11 @@ end
 end
 
 function getInitialPrimitive(configData)
-    rho_inf = configData["core"]["rho_inf"]::Float64
-    mach = configData["core"]["mach"]::Float64
+    rho_inf = configData["core"]["rho_inf"]
+    mach = configData["core"]["mach"]
     machcos::Float64 = mach * cos(calculateTheta(configData))
     machsin::Float64 = mach * sin(calculateTheta(configData))
-    pr_inf = configData["core"]["pr_inf"]::Float64
+    pr_inf = configData["core"]["pr_inf"]
     primal = [rho_inf, machcos, machsin, pr_inf]
     return primal
 end
@@ -244,6 +244,15 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dis
         end
     end
 
+    # println(IOContext(stdout, :compact => false), dist_globaldata[2000].x, dist_globaldata[2000].y )
+    # println(IOContext(stdout, :compact => false), dist_globaldata[2000].q)
+    # println(IOContext(stdout, :compact => false), dist_globaldata[2000].dq)
+    # println(IOContext(stdout, :compact => false), dist_globaldata[2000].flux_res)
+    # println(IOContext(stdout, :compact => false), dist_globaldata[2000].prim_old)
+    # println(IOContext(stdout, :compact => false), dist_globaldata[2000].max_q)
+    # println(IOContext(stdout, :compact => false), dist_globaldata[2000].min_q)
+    # println(IOContext(stdout, :compact => false), dist_globaldata[2000].delta)
+    # println()
     for rk in 1:4
     #    # if iter == 1
     #        # println("Starting QVar")
@@ -267,6 +276,14 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dis
             end
         end
 
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].q)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].dq)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].flux_res)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].prim)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].max_q)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].min_q)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].delta)
+        # println()
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
                 updateLocalGhostQPack(ghost_holder[:L], dist_qpack)
@@ -279,11 +296,28 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dis
             end
         end
 
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].q)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].dq)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].flux_res)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].prim_old)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].max_q)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].min_q)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].delta)
+        # println()
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
                 state_update(dist_globaldata[:L], dist_prim[:L], configData, iter, res_old[:L], res_new[:L], rk, numPoints)
             end
         end
+
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].q)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].dq)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].flux_res)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].prim_old)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].max_q)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].min_q)
+        # println(IOContext(stdout, :compact => false), dist_globaldata[2000].delta)
+        # println()
     end
 
     residue = 0
@@ -302,6 +336,9 @@ end
 
 @inline function q_variables(loc_globaldata, loc_q)
     for (idx, itm) in enumerate(loc_globaldata)
+        # if idx == 2000
+        #     println("==========================================")
+        # end
         rho = itm.prim[1]
         u1 = itm.prim[2]
         u2 = itm.prim[3]

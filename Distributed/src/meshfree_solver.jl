@@ -1,7 +1,6 @@
 function main()
 
     configData = getConfig()
-    wallpts, Interiorpts, outerpts, shapepts = 0,0,0,0
 
     format = configData["format"]["type"]
     file_name = string(ARGS[2])
@@ -141,7 +140,7 @@ function main()
     res_new = dzeros(nworkers())
     function test_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
         println("! Starting warmup function")
-        fpi_solver(1, ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
+        # fpi_solver(1, ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
         # res_old =
         # Profile.clear_malloc_data()
         # @trace(fpi_solver(1, globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old), maxdepth = 3)
