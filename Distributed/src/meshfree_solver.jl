@@ -19,6 +19,7 @@ function main()
     # outerptsidx = Array{Int32,1}(undef, 0)
     # shapeptsidx = Array{Int32,1}(undef, 0)
     # print(splitdata[1:3])
+    main_store = zeros(Float64, 62)
     defprimal = getInitialPrimitive(configData)
 
     # local_points_holder = Array{Array{Point,1},1}(undef, nworkers())
@@ -60,27 +61,15 @@ function main()
     dq_parts = reshape(dq_parts, (nworkers()))
     dist_qpack = DArray(dq_parts)
 
-    # println("Reading multiple files for MaxQ")
-    # max_q_parts = [@spawnat p readDistribuedFileMaxQ(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
-    # max_q_parts = reshape(max_q_parts, (nworkers()))
-    # dist_max_q = DArray(max_q_parts)
-
-    # println("Reading multiple files for MinQ")
-    # min_q_parts = [@spawnat p readDistribuedFileMinQ(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
-    # min_q_parts = reshape(min_q_parts, (nworkers()))
-    # dist_min_q = DArray(min_q_parts)
-
     println("Reading multiple files for Prim")
     prim_parts = [@spawnat p readDistribuedFilePrim(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
     prim_parts = reshape(prim_parts, (nworkers()))
     dist_prim = DArray(prim_parts)
 
-
     println("Reading Ghost")
     readGhostFile(folder_name, ghost_holder, global_local_map_index, dist_globaldata)
     # println(ghost_holder[1])
     ghost_holder = distribute(ghost_holder, procs=workers(), dist=(length(workers()),))
-
 
 
     interior = configData["point"]["interior"]
@@ -96,49 +85,30 @@ function main()
     @sync for pid in procs(dist_globaldata)
         @spawnat pid begin
             calculateConnectivity(dist_globaldata[:L], dist_globaldata, ghost_holder[:L])
-            # setConnectivity(dist_globaldata[idx], connectivity)
         end
     end
-    # @showprogress 3 "Computing Table" for idx in table
-    #     connectivity = calculateConnectivity(globaldata, idx)
-    #     setConnectivity(globaldata[idx], connectivity)
-    #     # smallest_dist(globaldata, idx)
-    #     # if idx % (length(table) * 0.25) == 0
-    #     #     println("Bump In Table")
-    #     # end
-    # end
 
-    # points_holder = DArray(reshape([lph[1]..., lph[2]...,lph[3]...,lph[4]...], :))
-    # @sync for pid in procs(dist_globaldata)
-    #     @spawnat pid begin
-    #         println(localindices(dist_globaldata))
-    #     end
-    # end
-
-    # println(dist_globaldata[3])
-
-    # println(wallptsidx)
-
-
-    # return
-
-    # configData = distribute(configData)
-    # println(globaldata[1])
-    # println(globaldata[end])
-    # println("Size is before: ",length(globaldata))
-    # dist_globaldata = distribute(globaldata, procs=workers(), dist=(length(workers()),))
-    # println("Size is: ", length(globaldata))
+    main_store[53] = configData["core"]["power"]::Float64
+    main_store[54] = configData["core"]["cfl"]::Float64 
+    main_store[55] = configData["core"]["limiter_flag"]::Int64
+    main_store[56] = configData["core"]["vl_const"]::Float64
+    main_store[57] = configData["core"]["aoa"]::Float64
+    main_store[58] = configData["core"]["mach"]::Float64
+    main_store[59] = configData["core"]["gamma"]::Float64
+    main_store[60] = configData["core"]["pr_inf"]::Float64
+    main_store[61] = configData["core"]["rho_inf"]::Float64
+    main_store[62] = calculateTheta(configData)::Float64
 
     println(Int(getConfig()["core"]["max_iters"]) + 1)
-    function run_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
+    function run_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints, main_store)
         for i in 1:(Int(getConfig()["core"]["max_iters"]))
-            fpi_solver(i, ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
+            fpi_solver(i, ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints, main_store)
         end
     end
 
     res_old = dzeros(nworkers())
     res_new = dzeros(nworkers())
-    function test_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
+    function test_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints, main_store)
         println("! Starting warmup function")
         # fpi_solver(1, ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
         # res_old =
@@ -151,12 +121,12 @@ function main()
         # res_old[1] = 0.0
         println("! Starting main function")
         @timeit to "nest 4" begin
-            run_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
+            run_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints, main_store)
         end
     end
 
 
-    test_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
+    test_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints, main_store)
     println("! Work Completed")
     # # println(to)
     open("../results/timer" * string(numPoints) * "_" * string(getConfig()["core"]["max_iters"]) *
