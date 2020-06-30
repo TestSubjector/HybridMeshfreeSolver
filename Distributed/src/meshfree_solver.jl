@@ -119,6 +119,7 @@ function main()
         # @profile fpi_solver(1, globaldata, configData, wallptsidx, outerptsidx, Interiorptsidx, res_old)
         # Profile.print()
         # res_old[1] = 0.0
+        # tempdq = zeros(Float64, dist_size, 2, 4)
         println("! Starting main function")
         @timeit to "nest 4" begin
             run_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints, main_store)
