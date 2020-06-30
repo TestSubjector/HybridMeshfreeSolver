@@ -258,8 +258,8 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dis
 	Gxn = @view main_store[33:36]
 	Gyp = @view main_store[37:40]
 	Gyn = @view main_store[41:44]
-    sum_delx_delq = @view main_store[45:48]
-    sum_dely_delq = @view main_store[49:52]
+    ∑_Δx_Δf = @view main_store[45:48]
+    ∑_Δy_Δf = @view main_store[49:52]
 
     for rk in 1:4
     #    # if iter == 1
@@ -280,7 +280,7 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dis
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                q_var_derivatives(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, sum_delx_delq, sum_dely_delq, qtilde_i, qtilde_k)
+                q_var_derivatives(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf, qtilde_i, qtilde_k)
             end
         end
 
@@ -292,7 +292,8 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dis
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                cal_flux_residual(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], configData)
+                cal_flux_residual(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k,
+                result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
             end
         end
 
@@ -340,17 +341,17 @@ end
     return nothing
 end
 
-function q_var_derivatives(loc_globaldata, loc_qpack, loc_ghost_holder, power, sum_delx_delq, sum_dely_delq, max_q, min_q)
+function q_var_derivatives(loc_globaldata, loc_qpack, loc_ghost_holder, power, ∑_Δx_Δf, ∑_Δy_Δf, max_q, min_q)
     dist_length = length(loc_globaldata)
 
     for (idx, itm) in enumerate(loc_globaldata)
         x_i = itm.x
         y_i = itm.y
-        sum_delx_sqr = zero(Float64)
-        sum_dely_sqr = zero(Float64)
-        sum_delx_dely = zero(Float64)
-        sum_delx_delq = fill!(sum_delx_delq, 0.0)
-        sum_dely_delq = fill!(sum_dely_delq, 0.0)
+        ∑_Δx_sqr = zero(Float64)
+        ∑_Δy_sqr = zero(Float64)
+        ∑_Δx_Δy = zero(Float64)
+        ∑_Δx_Δf = fill!(∑_Δx_Δf, 0.0)
+        ∑_Δy_Δf = fill!(∑_Δy_Δf, 0.0)
         
         @. max_q = loc_globaldata[idx].q
         @. min_q = loc_globaldata[idx].q
@@ -368,13 +369,13 @@ function q_var_derivatives(loc_globaldata, loc_qpack, loc_ghost_holder, power, s
             dely = y_k - y_i
             dist = hypot(delx, dely)
             weights = dist ^ power
-            sum_delx_sqr += ((delx * delx) * weights)
-            sum_dely_sqr += ((dely * dely) * weights)
-            sum_delx_dely += ((delx * dely) * weights)
+            ∑_Δx_sqr += ((delx * delx) * weights)
+            ∑_Δy_sqr += ((dely * dely) * weights)
+            ∑_Δx_Δy += ((delx * dely) * weights)
 
             for i in 1:4
-                sum_delx_delq[i] += (weights * delx * (globaldata_conn.q[i] - loc_globaldata[idx].q[i]))
-                sum_dely_delq[i] += (weights * dely * (globaldata_conn.q[i] - loc_globaldata[idx].q[i]))
+                ∑_Δx_Δf[i] += (weights * delx * (globaldata_conn.q[i] - loc_globaldata[idx].q[i]))
+                ∑_Δy_Δf[i] += (weights * dely * (globaldata_conn.q[i] - loc_globaldata[idx].q[i]))
                 if max_q[i] < globaldata_conn.q[i]
                     max_q[i] = globaldata_conn.q[i]
                 end
@@ -387,10 +388,10 @@ function q_var_derivatives(loc_globaldata, loc_qpack, loc_ghost_holder, power, s
         @. loc_globaldata[idx].min_q = min_q
         @. loc_qpack[idx].max_q = loc_globaldata[idx].max_q
         @. loc_qpack[idx].min_q = loc_globaldata[idx].min_q
-        det = (sum_delx_sqr * sum_dely_sqr) - (sum_delx_dely * sum_delx_dely)
+        det = (∑_Δx_sqr * ∑_Δy_sqr) - (∑_Δx_Δy * ∑_Δx_Δy)
         one_by_det = 1.0 / det
-        loc_globaldata[idx].dq[1] = @. one_by_det * (sum_delx_delq * sum_dely_sqr - sum_dely_delq * sum_delx_dely)
-        loc_globaldata[idx].dq[2] = @. one_by_det * (sum_dely_delq * sum_delx_sqr - sum_delx_delq * sum_delx_dely)
+        loc_globaldata[idx].dq[1] = @. one_by_det * (∑_Δx_Δf * ∑_Δy_sqr - ∑_Δy_Δf * ∑_Δx_Δy)
+        loc_globaldata[idx].dq[2] = @. one_by_det * (∑_Δy_Δf * ∑_Δx_sqr - ∑_Δx_Δf * ∑_Δx_Δy)
         @. loc_qpack[idx].dq = loc_globaldata[idx].dq
         # loc_qpack[idx].dq[2] = loc_globaldata[idx].dq[2]
         # globaldata[idx].dq = [tempsumx, tempsumy]

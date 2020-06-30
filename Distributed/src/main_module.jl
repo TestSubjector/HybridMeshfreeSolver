@@ -105,7 +105,6 @@ include("interior_fluxes.jl")
 # export interior_dGx_pos, interior_dGx_neg, interior_dGy_pos, interior_dGy_neg
 
 include("limiters.jl")
-# export venkat_limiter, maximum, minimum, smallest_dist, min_q_values, qtilde_to_primitive
 
 include("meshfree_solver.jl")
 export main

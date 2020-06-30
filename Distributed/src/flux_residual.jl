@@ -1,64 +1,46 @@
-function cal_flux_residual(loc_globaldata, globaldata, loc_ghost_holder, configData)
-	phi_i = zeros(Float64,4)
-	phi_k = zeros(Float64,4)
-	G_i = zeros(Float64,4)
-    G_k = zeros(Float64,4)
-	result = zeros(Float64,4)
-	qtilde_i = zeros(Float64,4)
-	qtilde_k = zeros(Float64,4)
-	dist_length = length(loc_globaldata)
+function cal_flux_residual(loc_globaldata, globaldata, loc_ghost_holder, Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k,
+    result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
 
-	# updateLocalGhost(loc_ghost_holder, globaldata)
+    dist_length = length(loc_globaldata)
+    power = main_store[53]
+    limiter_flag = main_store[55]
+    vl_const = main_store[56]
+    gamma = main_store[59]
 
 	for idx in 1:dist_length
 		if loc_globaldata[idx].flag_1 == 0
-			wallindices_flux_residual(loc_globaldata, globaldata, loc_ghost_holder, dist_length, configData, idx, phi_i, phi_k)
+			wallindices_flux_residual(loc_globaldata, loc_ghost_holder, dist_length, gamma, idx, Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const )
 		elseif loc_globaldata[idx].flag_1 == 2
-			outerindices_flux_residual(loc_globaldata, globaldata, loc_ghost_holder, dist_length, configData, idx, phi_i, phi_k)
+			outerindices_flux_residual(loc_globaldata, loc_ghost_holder, dist_length, gamma, idx, Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const )
 		elseif loc_globaldata[idx].flag_1 == 1
-			interiorindices_flux_residual(loc_globaldata, globaldata, loc_ghost_holder, dist_length, configData, idx, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
+			interiorindices_flux_residual(loc_globaldata, loc_ghost_holder, dist_length, gamma, idx, Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const)
 		end
 	end
 	return nothing
 end
 
-function wallindices_flux_residual(loc_globaldata, globaldata, loc_ghost_holder, dist_length, configData, itm, phi_i, phi_k)
-		Gxp = wall_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
-		Gxn = wall_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
-		Gyn = wall_dGy_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
-		@. loc_globaldata[itm].flux_res = (Gxp + Gxn + Gyn) * 2
-		# if itm == 3
-		# 	println(IOContext(stdout, :compact => false), Gxp)
-		# 	println(IOContext(stdout, :compact => false), Gxp + Gxn)
-		# 	println(IOContext(stdout, :compact => false), Gxp + Gxn + Gyn)
-		# end
+function wallindices_flux_residual(loc_globaldata, loc_ghost_holder, dist_length, gamma, idx, Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const )
+		wall_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gxp )
+		wall_dGx_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gxn )
+		wall_dGy_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gyn )
+		@. loc_globaldata[idx].flux_res = (Gxp + Gxn + Gyn) * 2
+
 	return nothing
 end
 
-function outerindices_flux_residual(loc_globaldata, globaldata, loc_ghost_holder, dist_length, configData, itm, phi_i, phi_k)
-	Gxp = outer_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
-	Gxn = outer_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
-	Gyp = outer_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k)
-	@. loc_globaldata[itm].flux_res = Gxp + Gxn + Gyp
+function outerindices_flux_residual(loc_globaldata, loc_ghost_holder, dist_length, gamma, idx, Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const )
+	outer_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gxp )
+	outer_dGx_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gxn )
+	outer_dGy_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gyp )
+	@. loc_globaldata[idx].flux_res = Gxp + Gxn + Gyp
 	return nothing
 end
 
-function interiorindices_flux_residual(loc_globaldata, globaldata, loc_ghost_holder, dist_length, configData, itm, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
-	# for itm in interiorindices
-		Gxp, Gxn, Gyp, Gyn = 0,0,0,0
-		Gxp = interior_dGx_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
-		Gxn = interior_dGx_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
-		Gyp = interior_dGy_pos(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
-		Gyn = interior_dGy_neg(loc_globaldata, globaldata, loc_ghost_holder, dist_length, itm, configData, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k)
-		# if itm == 1
-		# 	println("=======")
-		# 	println(IOContext(stdout, :compact => false), Gxp)
-		# 	println(IOContext(stdout, :compact => false), Gxn + Gxp)
-		# 	println(IOContext(stdout, :compact => false), Gxn + Gxp + Gyp)
-		# 	println(IOContext(stdout, :compact => false), Gxn + Gxp + Gyp + Gyn)
-		# 	println()
-		# end
-		@. loc_globaldata[itm].flux_res = Gxp + Gxn + Gyp + Gyn
-	# end
+function interiorindices_flux_residual(loc_globaldata, loc_ghost_holder, dist_length, gamma, idx, Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const)
+	interior_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gxp)
+	interior_dGx_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gxn)
+	interior_dGy_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gyp)
+	interior_dGy_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gyn)
+	@. loc_globaldata[idx].flux_res = Gxp + Gxn + Gyp + Gyn
 	return nothing
 end
