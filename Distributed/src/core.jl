@@ -269,11 +269,6 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dis
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
                 q_variables(dist_globaldata[:L], dist_q[:L], result)
-            end
-        end
-
-        @sync for ip in procs(dist_globaldata)
-            @spawnat ip begin
                 updateLocalGhostQ(ghost_holder[:L], dist_q)
             end
         end
@@ -281,11 +276,6 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dis
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
                 q_var_derivatives(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf, qtilde_i, qtilde_k)
-            end
-        end
-
-        @sync for ip in procs(dist_globaldata)
-            @spawnat ip begin
                 updateLocalGhostQPack(ghost_holder[:L], dist_qpack)
             end
         end
@@ -293,11 +283,6 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dis
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
                 q_var_derivatives_innerloop(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf, qtilde_i, qtilde_k)
-            end
-        end
-
-        @sync for ip in procs(dist_globaldata)
-            @spawnat ip begin
                 updateLocalGhostQPack(ghost_holder[:L], dist_qpack)
             end
         end
