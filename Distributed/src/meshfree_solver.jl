@@ -3,10 +3,10 @@ function main()
     configData = getConfig()
 
     format = configData["format"]["type"]
-    file_name = string(ARGS[2])
+    # file_name = string(ARGS[2])
     folder_name = string(ARGS[3])
 
-    numPoints = returnFileLength(file_name)
+    numPoints = parse(Int, ARGS[2])
     if format == "old"
         numPoints += 1
     end
