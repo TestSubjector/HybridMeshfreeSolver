@@ -45,7 +45,8 @@ end
     for iter in localkeys
         #Dict To Array Equality
         merge_holder = dist_qpack[loc_ghost_holder[1][iter].globalID]
-        @. loc_ghost_holder[1][iter].dq = merge_holder.dq
+        @. loc_ghost_holder[1][iter].dq1 = merge_holder.dq1
+        @. loc_ghost_holder[1][iter].dq2 = merge_holder.dq2
         @. loc_ghost_holder[1][iter].max_q = merge_holder.max_q
         @. loc_ghost_holder[1][iter].min_q = merge_holder.min_q
         # if iter == 63050000
@@ -56,20 +57,21 @@ end
     return nothing
 end
 
+@inline function updateLocalGhostDQ(loc_ghost_holder, dist_qpack)
+    localkeys = keys(loc_ghost_holder[1])
+    for iter in localkeys
+        merge_holder = dist_qpack[loc_ghost_holder[1][iter].globalID]
+        @. loc_ghost_holder[1][iter].dq1 = merge_holder.dq1
+        @. loc_ghost_holder[1][iter].dq2 = merge_holder.dq2
+    end
+    return nothing
+end
+
 @inline function updateLocalGhostPrim(loc_ghost_holder, dist_prim)
     localkeys = keys(loc_ghost_holder[1])
     # println(localkeys)
     for iter in localkeys
-        #Dict To Array Equality
-        # if iter == 6305
-        #     print("Prim>> ")
-        #     println(loc_ghost_holder[1][iter].prim)
-        # end
         @. loc_ghost_holder[1][iter].prim = dist_prim[loc_ghost_holder[1][iter].globalID].prim
-        # if iter == 6305
-        #     print("Prim>> ")
-        #     println(loc_ghost_holder[1][iter].prim)
-        # end
     end
     return nothing
 end
@@ -219,7 +221,7 @@ function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
     return nothing
 end
 
-function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints, main_store)
+function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, res_old, res_new, numPoints, main_store)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # print(" 111\n")
     power = main_store[53]
@@ -242,7 +244,6 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dis
 
     @sync for ip in procs(dist_globaldata)
         @spawnat ip begin
-            # println(length(localpart(globaldata)))
             func_delta(dist_globaldata[:L], ghost_holder[:L], cfl)
         end
     end
@@ -280,10 +281,12 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dis
             end
         end
 
-        @sync for ip in procs(dist_globaldata)
-            @spawnat ip begin
-                q_var_derivatives_innerloop(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf, qtilde_i, qtilde_k)
-                updateLocalGhostQPack(ghost_holder[:L], dist_qpack)
+        for inner_iters in 1:3
+            @sync for ip in procs(dist_globaldata)
+                @spawnat ip begin
+                    q_var_derivatives_innerloop(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf, qtilde_i, qtilde_k)
+                    updateLocalGhostDQ(ghost_holder[:L], dist_qpack)
+                end
             end
         end
 
@@ -296,7 +299,7 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dis
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                state_update(dist_globaldata[:L], dist_prim[:L], configData, iter, res_old[:L], res_new[:L], rk, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
+                state_update(dist_globaldata[:L], dist_prim[:L], iter, res_old[:L], res_new[:L], rk, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
             end
         end
 
@@ -387,9 +390,10 @@ function q_var_derivatives(loc_globaldata, loc_qpack, loc_ghost_holder, power, �
         @. loc_qpack[idx].min_q = loc_globaldata[idx].min_q
         det = (∑_Δx_sqr * ∑_Δy_sqr) - (∑_Δx_Δy * ∑_Δx_Δy)
         one_by_det = 1.0 / det
-        loc_globaldata[idx].dq[1] = @. one_by_det * (∑_Δx_Δq * ∑_Δy_sqr - ∑_Δy_Δq * ∑_Δx_Δy)
-        loc_globaldata[idx].dq[2] = @. one_by_det * (∑_Δy_Δq * ∑_Δx_sqr - ∑_Δx_Δq * ∑_Δx_Δy)
-        @. loc_qpack[idx].dq = loc_globaldata[idx].dq
+        @. loc_globaldata[idx].dq1 = one_by_det * (∑_Δx_Δq * ∑_Δy_sqr - ∑_Δy_Δq * ∑_Δx_Δy)
+        @. loc_globaldata[idx].dq2 = one_by_det * (∑_Δy_Δq * ∑_Δx_sqr - ∑_Δx_Δq * ∑_Δx_Δy)
+        @. loc_qpack[idx].dq1 = loc_globaldata[idx].dq1
+        @. loc_qpack[idx].dq2 = loc_globaldata[idx].dq2
     end
     return nothing
 end
@@ -423,8 +427,8 @@ function q_var_derivatives_innerloop(loc_globaldata, loc_qpack, loc_ghost_holder
             ∑_Δx_Δy += ((delx * dely) * weights)
 
             for iter in 1:4
-                qi_tilde[iter] = loc_globaldata[idx].q[iter] - 0.5 * (delx * loc_globaldata[idx].dq[1][iter] + dely * loc_globaldata[idx].dq[2][iter])
-                qk_tilde[iter] = globaldata_conn.q[iter] - 0.5 * (delx * globaldata_conn.dq[1][iter] + dely * globaldata_conn.dq[2][iter])
+                qi_tilde[iter] = loc_globaldata[idx].q[iter] - 0.5 * (delx * loc_globaldata[idx].dq1[iter] + dely * loc_globaldata[idx].dq2[iter])
+                qk_tilde[iter] = globaldata_conn.q[iter] - 0.5 * (delx * globaldata_conn.dq1[iter] + dely * globaldata_conn.dq2[iter])
                 intermediate_var = weights * (qk_tilde[iter] - qi_tilde[iter])
                 ∑_Δx_Δq[iter] += delx * intermediate_var
                 ∑_Δy_Δq[iter] += dely * intermediate_var
@@ -433,13 +437,15 @@ function q_var_derivatives_innerloop(loc_globaldata, loc_qpack, loc_ghost_holder
         det = (∑_Δx_sqr * ∑_Δy_sqr) - (∑_Δx_Δy * ∑_Δx_Δy)
         one_by_det = 1.0 / det
         # for iter in 1:4
-        loc_globaldata[idx].tempdq[1] = @. one_by_det * (∑_Δx_Δq * ∑_Δy_sqr - ∑_Δy_Δq * ∑_Δx_Δy)
-        loc_globaldata[idx].tempdq[2] = @. one_by_det * (∑_Δy_Δq * ∑_Δx_sqr - ∑_Δx_Δq * ∑_Δx_Δy)
+        @. loc_globaldata[idx].tempdq1 = one_by_det * (∑_Δx_Δq * ∑_Δy_sqr - ∑_Δy_Δq * ∑_Δx_Δy)
+        @. loc_globaldata[idx].tempdq2 = one_by_det * (∑_Δy_Δq * ∑_Δx_sqr - ∑_Δx_Δq * ∑_Δx_Δy)
         # end 
     end
     for (idx, _) in enumerate(loc_globaldata)
-        @. loc_globaldata[idx].dq = loc_globaldata[idx].tempdq
-        @. loc_qpack[idx].dq = loc_globaldata[idx].dq
+        @. loc_globaldata[idx].dq1 = loc_globaldata[idx].tempdq1
+        @. loc_globaldata[idx].dq2 = loc_globaldata[idx].tempdq2
+        @. loc_qpack[idx].dq1 = loc_globaldata[idx].dq1
+        @. loc_qpack[idx].dq2 = loc_globaldata[idx].dq2
     end
     return nothing
 end

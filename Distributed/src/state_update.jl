@@ -27,7 +27,7 @@ function func_delta(loc_globaldata, loc_ghost_holder, cfl)
     return nothing
 end
 
-function state_update(loc_globaldata, loc_prim, configData, iter, res_old, res_new, rk, U, Uold, main_store)
+function state_update(loc_globaldata, loc_prim, iter, res_old, res_new, rk, U, Uold, main_store)
     ∑_res_sqr = zeros(Float64, 1)
     Mach = main_store[58] 
     gamma = main_store[59] 

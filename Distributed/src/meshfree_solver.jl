@@ -100,15 +100,15 @@ function main()
     main_store[62] = calculateTheta(configData)::Float64
 
     println(Int(getConfig()["core"]["max_iters"]) + 1)
-    function run_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints, main_store)
+    function run_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, res_old, res_new, numPoints, main_store)
         for i in 1:(Int(getConfig()["core"]["max_iters"]))
-            fpi_solver(i, ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints, main_store)
+            fpi_solver(i, ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, res_old, res_new, numPoints, main_store)
         end
     end
 
     res_old = dzeros(nworkers())
     res_new = dzeros(nworkers())
-    function test_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints, main_store)
+    function test_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, res_old, res_new, numPoints, main_store)
         println("! Starting warmup function")
         # fpi_solver(1, ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints)
         # res_old =
@@ -122,12 +122,12 @@ function main()
         # tempdq = zeros(Float64, dist_size, 2, 4)
         println("! Starting main function")
         @timeit to "nest 4" begin
-            run_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints, main_store)
+            run_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, res_old, res_new, numPoints, main_store)
         end
     end
 
 
-    test_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, configData, res_old, res_new, numPoints, main_store)
+    test_code(ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, res_old, res_new, numPoints, main_store)
     println("! Work Completed")
     # # println(to)
     open("../results/timer" * string(numPoints) * "_" * string(getConfig()["core"]["max_iters"]) *

@@ -43,16 +43,16 @@ function interior_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, ga
         ∑_Δx_Δy = ∑_Δx_Δy + dels*deln_weights
 
         for i in 1:4
-            qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * (delx*(loc_globaldata[idx].dq[1][i]) + dely*(loc_globaldata[idx].dq[2][i]))
-            qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * (delx*(globaldata_itm.dq[1][i]) + dely*(globaldata_itm.dq[2][i]))
+            qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * (delx*(loc_globaldata[idx].dq1[i]) + dely*(loc_globaldata[idx].dq2[i]))
+            qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * (delx*(globaldata_itm.dq1[i]) + dely*(globaldata_itm.dq2[i]))
         end
 
         if limiter_flag == 1
             venkat_limiter(qtilde_i, loc_globaldata[idx], vl_const, phi_i)
             venkat_limiter(qtilde_k, globaldata_itm, vl_const, phi_k)
             for i in 1:4
-                qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * phi_i[i] * (delx*(loc_globaldata[idx].dq[1][i]) + dely*(loc_globaldata[idx].dq[2][i]))
-                qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * phi_k[i] * (delx*(globaldata_itm.dq[1][i]) + dely*(globaldata_itm.dq[2][i]))
+                qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * phi_i[i] * (delx*(loc_globaldata[idx].dq1[i]) + dely*(loc_globaldata[idx].dq2[i]))
+                qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * phi_k[i] * (delx*(globaldata_itm.dq1[i]) + dely*(globaldata_itm.dq2[i]))
             end
         end
 
@@ -121,16 +121,16 @@ function interior_dGx_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, ga
         ∑_Δx_Δy = ∑_Δx_Δy + dels*deln_weights
 
         for i in 1:4
-            qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * (delx*(loc_globaldata[idx].dq[1][i]) + dely*(loc_globaldata[idx].dq[2][i]))
-            qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * (delx*(globaldata_itm.dq[1][i]) + dely*(globaldata_itm.dq[2][i]))
+            qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * (delx*(loc_globaldata[idx].dq1[i]) + dely*(loc_globaldata[idx].dq2[i]))
+            qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * (delx*(globaldata_itm.dq1[i]) + dely*(globaldata_itm.dq2[i]))
         end
 
         if limiter_flag == 1
             venkat_limiter(qtilde_i, loc_globaldata[idx], vl_const, phi_i)
             venkat_limiter(qtilde_k, globaldata_itm, vl_const, phi_k)
             for i in 1:4
-                qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * phi_i[i] * (delx*(loc_globaldata[idx].dq[1][i]) + dely*(loc_globaldata[idx].dq[2][i]))
-                qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * phi_k[i] * (delx*(globaldata_itm.dq[1][i]) + dely*(globaldata_itm.dq[2][i]))
+                qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * phi_i[i] * (delx*(loc_globaldata[idx].dq1[i]) + dely*(loc_globaldata[idx].dq2[i]))
+                qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * phi_k[i] * (delx*(globaldata_itm.dq1[i]) + dely*(globaldata_itm.dq2[i]))
             end
         end
  
@@ -200,16 +200,16 @@ function interior_dGy_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, ga
         ∑_Δx_Δy = ∑_Δx_Δy + dels*deln_weights
 
         for i in 1:4
-            qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * (delx*(loc_globaldata[idx].dq[1][i]) + dely*(loc_globaldata[idx].dq[2][i]))
-            qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * (delx*(globaldata_itm.dq[1][i]) + dely*(globaldata_itm.dq[2][i]))
+            qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * (delx*(loc_globaldata[idx].dq1[i]) + dely*(loc_globaldata[idx].dq2[i]))
+            qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * (delx*(globaldata_itm.dq1[i]) + dely*(globaldata_itm.dq2[i]))
         end
 
         if limiter_flag == 1
             venkat_limiter(qtilde_i, loc_globaldata[idx], vl_const, phi_i)
             venkat_limiter(qtilde_k, globaldata_itm, vl_const, phi_k)
             for i in 1:4
-                qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * phi_i[i] * (delx*(loc_globaldata[idx].dq[1][i]) + dely*(loc_globaldata[idx].dq[2][i]))
-                qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * phi_k[i] * (delx*(globaldata_itm.dq[1][i]) + dely*(globaldata_itm.dq[2][i]))
+                qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * phi_i[i] * (delx*(loc_globaldata[idx].dq1[i]) + dely*(loc_globaldata[idx].dq2[i]))
+                qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * phi_k[i] * (delx*(globaldata_itm.dq1[i]) + dely*(globaldata_itm.dq2[i]))
             end
         end
 
@@ -280,16 +280,16 @@ function interior_dGy_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, ga
         ∑_Δx_Δy = ∑_Δx_Δy + dels*deln_weights
 
         for i in 1:4
-            qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * (delx*(loc_globaldata[idx].dq[1][i]) + dely*(loc_globaldata[idx].dq[2][i]))
-            qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * (delx*(globaldata_itm.dq[1][i]) + dely*(globaldata_itm.dq[2][i]))
+            qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * (delx*(loc_globaldata[idx].dq1[i]) + dely*(loc_globaldata[idx].dq2[i]))
+            qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * (delx*(globaldata_itm.dq1[i]) + dely*(globaldata_itm.dq2[i]))
         end
 
         if limiter_flag == 1
             venkat_limiter(qtilde_i, loc_globaldata[idx], vl_const, phi_i)
             venkat_limiter(qtilde_k, globaldata_itm, vl_const, phi_k)
             for i in 1:4
-                qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * phi_i[i] * (delx*(loc_globaldata[idx].dq[1][i]) + dely*(loc_globaldata[idx].dq[2][i]))
-                qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * phi_k[i] * (delx*(globaldata_itm.dq[1][i]) + dely*(globaldata_itm.dq[2][i]))
+                qtilde_i[i] = (loc_globaldata[idx].q[i]) - 0.5 * phi_i[i] * (delx*(loc_globaldata[idx].dq1[i]) + dely*(loc_globaldata[idx].dq2[i]))
+                qtilde_k[i] = (globaldata_itm.q[i]) - 0.5 * phi_k[i] * (delx*(globaldata_itm.dq1[i]) + dely*(globaldata_itm.dq2[i]))
             end
         end
  

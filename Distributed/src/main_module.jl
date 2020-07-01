@@ -41,8 +41,10 @@ mutable struct Point
     # Size 4 (Pressure, vx, vy, density) x numberpts
     q::Array{Float64,1}
     # Size 2(x,y) 4(Pressure, vx, vy, density) numberpts
-    dq::Array{Array{Float64,1},1}
-    tempdq::Array{Array{Float64,1},1}
+    dq1::Array{Float64,1}
+    dq2::Array{Float64,1}
+    tempdq1::Array{Float64,1}
+    tempdq2::Array{Float64,1}
     entropy::Float64
     xpos_nbhs::Int8
     xneg_nbhs::Int8
@@ -64,7 +66,8 @@ mutable struct TempQ
 end
 
 mutable struct TempQPack
-    dq::Array{Array{Float64,1},1}
+    dq1::Array{Float64,1}
+    dq2::Array{Float64,1}
     max_q::Array{Float64,1}
     min_q::Array{Float64,1}
 end

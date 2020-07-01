@@ -106,7 +106,7 @@ function readDistribuedFile(folder_name::String, defprimal, p, global_local_map_
                 copy(defprimal),
                 zeros(Float64, 4),
                 zeros(Float64, 4),
-                Array{Array{Float64,1},1}(undef, 2), Array{Array{Float64,1},1}(undef, 2), 0.0, 0, 0, 0, 0, Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0),
+                zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4), 0.0, 0, 0, 0, 0, Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0),
                 Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0), 0.0, zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4),
                 globalID)
         end
@@ -154,7 +154,7 @@ function readDistribuedFileQuadtree(folder_name::String, defprimal, p, global_lo
                 copy(defprimal),
                 zeros(Float64, 4),
                 zeros(Float64, 4),
-                Array{Array{Float64,1},1}(undef, 2), Array{Array{Float64,1},1}(undef, 2), 0.0, 0, 0, 0, 0, Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0),
+                zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4), 0.0, 0, 0, 0, 0, Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0),
                 Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0), 0.0, zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4),
                 globalID)
         end
@@ -219,7 +219,7 @@ function readDistribuedFileQPack(folder_name::String, defprimal, p, global_local
             continue
         elseif idx <= local_point_count + 1
             # itmdata = split(itm)
-            local_points_holder[idx-1] = TempQPack(Array{Array{Float64,1},1}(undef, 2), zeros(Float64, 4), zeros(Float64, 4))
+            local_points_holder[idx-1] = TempQPack(zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4))
         end
     end
     return local_points_holder
