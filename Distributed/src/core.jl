@@ -45,14 +45,12 @@ end
     for iter in localkeys
         #Dict To Array Equality
         merge_holder = dist_qpack[loc_ghost_holder[1][iter].globalID]
-        @. loc_ghost_holder[1][iter].dq1 = merge_holder.dq1
-        @. loc_ghost_holder[1][iter].dq2 = merge_holder.dq2
-        @. loc_ghost_holder[1][iter].max_q = merge_holder.max_q
-        @. loc_ghost_holder[1][iter].min_q = merge_holder.min_q
-        # if iter == 63050000
-        #     print("DQ>> ")
-        #     println(loc_ghost_holder[1][iter])
-        # end
+        for idx in 1:4
+            loc_ghost_holder[1][iter].dq1[idx] = merge_holder.dq1[idx]
+            loc_ghost_holder[1][iter].dq2[idx] = merge_holder.dq2[idx]
+            loc_ghost_holder[1][iter].max_q[idx] = merge_holder.max_q[idx]
+            loc_ghost_holder[1][iter].min_q[idx] = merge_holder.min_q[idx]
+        end
     end
     return nothing
 end
@@ -61,8 +59,10 @@ end
     localkeys = keys(loc_ghost_holder[1])
     for iter in localkeys
         merge_holder = dist_qpack[loc_ghost_holder[1][iter].globalID]
-        @. loc_ghost_holder[1][iter].dq1 = merge_holder.dq1
-        @. loc_ghost_holder[1][iter].dq2 = merge_holder.dq2
+        for idx in 1:4
+            loc_ghost_holder[1][iter].dq1[idx] = merge_holder.dq1[idx]
+            loc_ghost_holder[1][iter].dq2[idx] = merge_holder.dq2[idx]
+        end
     end
     return nothing
 end
