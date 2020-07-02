@@ -221,7 +221,7 @@ function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
     return nothing
 end
 
-function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dist_prim, res_old, res_new, numPoints, main_store)
+function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, res_old, res_new, numPoints, main_store)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # print(" 111\n")
     power = main_store[53]
@@ -229,7 +229,7 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dis
 
     @sync for ip in procs(dist_globaldata)
         @spawnat ip begin
-            updateLocalGhostPrim(ghost_holder[:L], dist_prim)
+            updateLocalGhostPrim(ghost_holder[:L], dist_qpack)
         end
     end
 
@@ -299,7 +299,7 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, dis
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                state_update(dist_globaldata[:L], dist_prim[:L], iter, res_old[:L], res_new[:L], rk, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
+                state_update(dist_globaldata[:L], dist_qpack[:L], iter, res_old[:L], res_new[:L], rk, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
             end
         end
 
