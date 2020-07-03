@@ -225,24 +225,30 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
     power = main_store[53]
     cfl = main_store[54]
 
-    @sync for ip in procs(dist_globaldata)
-        @spawnat ip begin
-            updateLocalGhostPrim(ghost_holder[:L], dist_keys[:L], dist_qpack)
-        end
-    end
-
-    if iter == 1
-        println("Starting FuncDelta")
+    @timeit to "prim_update" begin
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                updateLocalGhost(ghost_holder[:L], dist_keys[:L], dist_globaldata)
+                updateLocalGhostPrim(ghost_holder[:L], dist_keys[:L], dist_qpack)
             end
         end
     end
 
-    @sync for ip in procs(dist_globaldata)
-        @spawnat ip begin
-            func_delta(dist_globaldata[:L], ghost_holder[:L], cfl)
+    @timeit to "extra1" begin
+        if iter == 1
+            println("Starting FuncDelta")
+            @sync for ip in procs(dist_globaldata)
+                @spawnat ip begin
+                    updateLocalGhost(ghost_holder[:L], dist_keys[:L], dist_globaldata)
+                end
+            end
+        end
+    end
+
+    @timeit to "func_delta" begin
+        @sync for ip in procs(dist_globaldata)
+            @spawnat ip begin
+                func_delta(dist_globaldata[:L], ghost_holder[:L], cfl)
+            end
         end
     end
 
@@ -265,55 +271,64 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
     #        # println("Starting QVar")
     #    # end
 
-        @sync for ip in procs(dist_globaldata)
-            @spawnat ip begin
-                q_variables(dist_globaldata[:L], dist_q[:L], result)
-                updateLocalGhostQ(ghost_holder[:L], dist_keys[:L], dist_q)
-            end
-        end
-
-        @sync for ip in procs(dist_globaldata)
-            @spawnat ip begin
-                q_var_derivatives(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf, qtilde_i, qtilde_k)
-                updateLocalGhostQPack(ghost_holder[:L], dist_keys[:L], dist_qpack)
-            end
-        end
-
-        for inner_iters in 1:3
+        @timeit to "q_var" begin
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    q_var_derivatives_innerloop(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf, qtilde_i, qtilde_k)
-                    updateLocalGhostDQ(ghost_holder[:L], dist_keys[:L], dist_qpack)
+                    q_variables(dist_globaldata[:L], dist_q[:L], result)
+                    updateLocalGhostQ(ghost_holder[:L], dist_keys[:L], dist_q)
                 end
             end
         end
 
-        @sync for ip in procs(dist_globaldata)
-            @spawnat ip begin
-                cal_flux_residual(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k,
-                result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
+        @timeit to "q_vderv" begin
+            @sync for ip in procs(dist_globaldata)
+                @spawnat ip begin
+                    q_var_derivatives(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf, qtilde_i, qtilde_k)
+                    updateLocalGhostQPack(ghost_holder[:L], dist_keys[:L], dist_qpack)
+                end
             end
         end
 
-        @sync for ip in procs(dist_globaldata)
-            @spawnat ip begin
-                state_update(dist_globaldata[:L], dist_qpack[:L], iter, res_old[:L], res_new[:L], rk, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
+        @timeit to "q_dervinnerloop" begin
+            for inner_iters in 1:3
+                @sync for ip in procs(dist_globaldata)
+                    @spawnat ip begin
+                        q_var_derivatives_innerloop(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf, qtilde_i, qtilde_k)
+                        updateLocalGhostDQ(ghost_holder[:L], dist_keys[:L], dist_qpack)
+                    end
+                end
+            end
+        end
+
+        @timeit to "flux_res" begin
+            @sync for ip in procs(dist_globaldata)
+                @spawnat ip begin
+                    cal_flux_residual(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k,
+                    result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
+                end
+            end
+        end
+
+        @timeit to "state_update" begin
+            @sync for ip in procs(dist_globaldata)
+                @spawnat ip begin
+                    state_update(dist_globaldata[:L], dist_qpack[:L], iter, res_old[:L], res_new[:L], rk, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
+                end
             end
         end
 
     end
 
-    residue = 0
-    if iter <= 2
-        # res_old[1] = res_new[1]
-        residue = 0
-    else
-        residue = log10(sqrt(sum(res_new))/sqrt(sum(res_old)))
-    end
+    # @timeit to "extra2" begin
+    #     residue = 0
+    #     if iter <= 2
+    #         residue = 0
+    #     else
+    #         residue = log10(sqrt(sum(res_new))/sqrt(sum(res_old)))
+    #     end 
+    # end
 
-    println("Iteration Number ", iter, " ", residue)
-    # println(IOContext(stdout, :compact => false), globaldata[3].prim)
-    # residue = res_old
+    println("Iteration Number ", iter)
     return nothing
 end
 

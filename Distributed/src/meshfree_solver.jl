@@ -124,7 +124,7 @@ function main()
         # res_old[1] = 0.0
         # tempdq = zeros(Float64, dist_size, 2, 4)
         println("! Starting main function")
-        @timeit to "nest 4" begin
+        @timeit to "nest 1" begin
             run_code(ghost_holder, dist_keys, dist_globaldata, dist_q, dist_qpack, res_old, res_new, numPoints, main_store)
         end
     end
