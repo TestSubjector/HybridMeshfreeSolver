@@ -38,7 +38,7 @@ function flux_quad_GxI(G, nx, ny, u1, u2, rho, pr)
     return nothing
 end
 
-function flux_quad_GxII(G, nx, ny, u1, u2, rho, pr, flag)
+function flux_quad_GxII(G, nx, ny, u1, u2, rho, pr)
     tx = ny
     ty = -nx
     ut = u1*tx + u2*ty

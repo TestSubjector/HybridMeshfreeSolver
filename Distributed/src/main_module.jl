@@ -4,6 +4,8 @@ module main_module
 
 using Distributed
 using DistributedArrays
+using StaticArrays
+using StructArrays
 using Profile
 using ProgressMeter
 using Printf
@@ -37,14 +39,14 @@ mutable struct Point
     ny::Float64
     # Size 4 (Pressure, vx, vy, density) x numberpts
     prim::Array{Float64,1}
-    flux_res::Array{Float64,1}
+    flux_res::SArray{Tuple{4},Float64,1,4}
     # Size 4 (Pressure, vx, vy, density) x numberpts
     q::Array{Float64,1}
     # Size 2(x,y) 4(Pressure, vx, vy, density) numberpts
-    dq1::Array{Float64,1}
-    dq2::Array{Float64,1}
-    tempdq1::Array{Float64,1}
-    tempdq2::Array{Float64,1}
+    dq1::SArray{Tuple{4},Float64,1,4}
+    dq2::SArray{Tuple{4},Float64,1,4}
+    tempdq1::SArray{Tuple{4},Float64,1,4}
+    tempdq2::SArray{Tuple{4},Float64,1,4}
     entropy::Float64
     xpos_nbhs::Int8
     xneg_nbhs::Int8
@@ -62,28 +64,28 @@ mutable struct Point
 end
 
 mutable struct TempQ
-    q::Array{Float64,1}
+    q::SArray{Tuple{4},Float64,1,4}
 end
 
 mutable struct TempQPack
-    dq1::Array{Float64,1}
-    dq2::Array{Float64,1}
-    max_q::Array{Float64,1}
-    min_q::Array{Float64,1}
-    prim::Array{Float64,1}
+    dq1::SArray{Tuple{4},Float64,1,4}
+    dq2::SArray{Tuple{4},Float64,1,4}
+    max_q::SArray{Tuple{4},Float64,1,4}
+    min_q::SArray{Tuple{4},Float64,1,4}
+    prim::SArray{Tuple{4},Float64,1,4}
 end
 
-mutable struct TempMaxQ
-    max_q::Array{Float64,1}
-end
+# mutable struct TempMaxQ
+#     max_q::Array{Float64,1}
+# end
 
-mutable struct TempMinQ
-    min_q::Array{Float64,1}
-end
+# mutable struct TempMinQ
+#     min_q::Array{Float64,1}
+# end
 
-mutable struct TempPrim
-    prim::Array{Float64,1}
-end
+# mutable struct TempPrim
+#     prim::Array{Float64,1}
+# end
 
 # using PyCall
 

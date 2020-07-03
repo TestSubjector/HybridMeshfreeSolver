@@ -152,9 +152,13 @@ function readDistribuedFileQuadtree(folder_name::String, defprimal, p, global_lo
                 parse(Float64, itmdata[7]),
                 parse(Float64, itmdata[8]),
                 copy(defprimal),
+                SVector{4}([zero(Float64) for iter in 1:4]),
                 zeros(Float64, 4),
-                zeros(Float64, 4),
-                zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4), 0.0, 0, 0, 0, 0, Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0),
+                SVector{4}([zero(Float64) for iter in 1:4]), 
+                SVector{4}([zero(Float64) for iter in 1:4]), 
+                SVector{4}([zero(Float64) for iter in 1:4]), 
+                SVector{4}([zero(Float64) for iter in 1:4]), 
+                0.0, 0, 0, 0, 0, Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0),
                 Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0), 0.0, zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4),
                 globalID)
         end
@@ -187,7 +191,7 @@ function readDistribuedFileQ(folder_name::String, defprimal, p, global_local_map
             continue
         elseif idx <= local_point_count + 1
             # itmdata = split(itm)
-            local_points_holder[idx-1] = TempQ(zeros(Float64, 4))
+            local_points_holder[idx-1] = TempQ(SVector{4}([zero(Float64) for iter in 1:4]))
         end
     end
 
@@ -219,7 +223,11 @@ function readDistribuedFileQPack(folder_name::String, defprimal, p, global_local
             continue
         elseif idx <= local_point_count + 1
             # itmdata = split(itm)
-            local_points_holder[idx-1] = TempQPack(zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4))
+            local_points_holder[idx-1] = TempQPack(SVector{4}([zero(Float64) for iter in 1:4]), 
+                                            SVector{4}([zero(Float64) for iter in 1:4]), 
+                                            SVector{4}([zero(Float64) for iter in 1:4]), 
+                                            SVector{4}([zero(Float64) for iter in 1:4]), 
+                                            SVector{4}([zero(Float64) for iter in 1:4]))
         end
     end
     return local_points_holder

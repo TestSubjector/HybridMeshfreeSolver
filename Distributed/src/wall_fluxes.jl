@@ -1,7 +1,5 @@
 function wall_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gxp)
 
-
-
     ∑_Δx_sqr = zero(Float64)
     ∑_Δy_sqr = zero(Float64)
     ∑_Δx_Δy = zero(Float64)
@@ -44,8 +42,8 @@ function wall_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma,
         ∑_Δy_sqr = ∑_Δy_sqr + deln*deln_weights
         ∑_Δx_Δy = ∑_Δx_Δy + dels*deln_weights
 
-        qtilde_i = @. loc_globaldata[idx].q - 0.5*(delx * loc_globaldata[idx].dq1 + dely * loc_globaldata[idx].dq2)
-        qtilde_k = @. globaldata_itm.q - 0.5*(delx * globaldata_itm.dq1 + dely * globaldata_itm.dq2)
+        @. qtilde_i = loc_globaldata[idx].q - 0.5*(delx * loc_globaldata[idx].dq1 + dely * loc_globaldata[idx].dq2)
+        @. qtilde_k = globaldata_itm.q - 0.5*(delx * globaldata_itm.dq1 + dely * globaldata_itm.dq2)
 
         # if idx == 3
         #     println(IOContext(stdout, :compact => false), itm)
@@ -59,12 +57,6 @@ function wall_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma,
             @. qtilde_k = globaldata_itm.q - 0.5 * phi_k * (delx*globaldata_itm.dq1 + dely*globaldata_itm.dq2)
         end
 
-        if idx == 100
-            flag = 0
-        else
-            flag = 1
-        end
-
         # if idx == 3
         #     println(IOContext(stdout, :compact => false), result)
         # end
@@ -73,7 +65,7 @@ function wall_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma,
         #     println(IOContext(stdout, :compact => false), itm)
         #     println(IOContext(stdout, :compact => false), result)
         # end
-        flux_quad_GxII(G_i, nx, ny, result[1], result[2], result[3], result[4], flag)
+        flux_quad_GxII(G_i, nx, ny, result[1], result[2], result[3], result[4])
         # if idx == 3
         #     println(IOContext(stdout, :compact => false), result)
         # end
@@ -81,7 +73,7 @@ function wall_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma,
         # if idx == 3
         #     println(IOContext(stdout, :compact => false), result)
         # end
-        flux_quad_GxII(G_k, nx, ny, result[1], result[2], result[3], result[4], flag)
+        flux_quad_GxII(G_k, nx, ny, result[1], result[2], result[3], result[4])
 
         for i in 1:4
             ∑_Δx_Δf[i] += (G_k[i] - G_i[i]) * dels_weights
@@ -142,8 +134,8 @@ function wall_dGx_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma,
 
         ∑_Δx_Δy = ∑_Δx_Δy + dels*deln_weights
 
-        qtilde_i = @. loc_globaldata[idx].q - 0.5*(delx*loc_globaldata[idx].dq1 + dely*loc_globaldata[idx].dq2)
-        qtilde_k = @. globaldata_itm.q - 0.5*(delx*globaldata_itm.dq1 + dely*globaldata_itm.dq2)
+        @. qtilde_i = loc_globaldata[idx].q - 0.5*(delx * loc_globaldata[idx].dq1 + dely * loc_globaldata[idx].dq2)
+        @. qtilde_k = globaldata_itm.q - 0.5*(delx * globaldata_itm.dq1 + dely * globaldata_itm.dq2)
 
         if limiter_flag == 1
             venkat_limiter(qtilde_i, loc_globaldata[idx], vl_const, phi_i)
@@ -217,8 +209,8 @@ function wall_dGy_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma,
 
         ∑_Δx_Δy = ∑_Δx_Δy + dels*deln_weights
 
-        qtilde_i = @. loc_globaldata[idx].q - 0.5*(delx*loc_globaldata[idx].dq1 + dely*loc_globaldata[idx].dq2)
-        qtilde_k = @. globaldata_itm.q - 0.5*(delx*globaldata_itm.dq1 + dely*globaldata_itm.dq2)
+        @. qtilde_i = loc_globaldata[idx].q - 0.5*(delx*loc_globaldata[idx].dq1 + dely*loc_globaldata[idx].dq2)
+        @. qtilde_k = globaldata_itm.q - 0.5*(delx*globaldata_itm.dq1 + dely*globaldata_itm.dq2)
 
         if limiter_flag == 1
             venkat_limiter(qtilde_i, loc_globaldata[idx], vl_const, phi_i)

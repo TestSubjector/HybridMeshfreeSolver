@@ -23,7 +23,7 @@ function wallindices_flux_residual(loc_globaldata, loc_ghost_holder, dist_length
 		wall_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gxp )
 		wall_dGx_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gxn )
 		wall_dGy_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gyn )
-		@. loc_globaldata[idx].flux_res = (Gxp + Gxn + Gyn) * 2
+		loc_globaldata[idx].flux_res = SVector{4}((Gxp + Gxn + Gyn) * 2)
 
 	return nothing
 end
@@ -32,7 +32,7 @@ function outerindices_flux_residual(loc_globaldata, loc_ghost_holder, dist_lengt
 	outer_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gxp )
 	outer_dGx_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gxn )
 	outer_dGy_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gyp )
-	@. loc_globaldata[idx].flux_res = Gxp + Gxn + Gyp
+	loc_globaldata[idx].flux_res = SVector{4}(Gxp + Gxn + Gyp)
 	return nothing
 end
 
@@ -41,6 +41,6 @@ function interiorindices_flux_residual(loc_globaldata, loc_ghost_holder, dist_le
 	interior_dGx_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gxn)
 	interior_dGy_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gyp)
 	interior_dGy_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma, phi_i, phi_k, G_i, G_k, result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, power, limiter_flag, vl_const, Gyn)
-	@. loc_globaldata[idx].flux_res = Gxp + Gxn + Gyp + Gyn
+	loc_globaldata[idx].flux_res = SVector{4}(Gxp + Gxn + Gyp + Gyn)
 	return nothing
 end

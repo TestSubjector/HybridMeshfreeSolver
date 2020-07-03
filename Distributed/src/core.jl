@@ -15,12 +15,7 @@ end
     localkeys = loc_keys
     # println(localkeys)
     for iter in localkeys
-        #Dict To Array Equality
         loc_ghost_holder[1][iter] = dist_globaldata[loc_ghost_holder[1][iter].globalID]
-        # if iter == 6305000
-        #     print("Ghost>> ")
-        #     println(loc_ghost_holder[1][iter])
-        # end
     end
     return nothing
 end
@@ -30,7 +25,10 @@ end
     # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
-        @. loc_ghost_holder[1][iter].q = dist_q[loc_ghost_holder[1][iter].globalID].q
+        merge_holder =  dist_q[loc_ghost_holder[1][iter].globalID]
+        for idx in 1:4
+            loc_ghost_holder[1][iter].q[idx] =merge_holder.q[idx]
+        end
         # if iter == 63050000
         #     print("Q>> ")
         #     println(loc_ghost_holder[1][iter])
@@ -45,9 +43,11 @@ end
     for iter in localkeys
         #Dict To Array Equality
         merge_holder = dist_qpack[loc_ghost_holder[1][iter].globalID]
+        loc_ghost_holder[1][iter].dq1 = SVector{4}(merge_holder.dq1)
+        loc_ghost_holder[1][iter].dq2 = SVector{4}(merge_holder.dq2)
         for idx in 1:4
-            loc_ghost_holder[1][iter].dq1[idx] = merge_holder.dq1[idx]
-            loc_ghost_holder[1][iter].dq2[idx] = merge_holder.dq2[idx]
+        #     loc_ghost_holder[1][iter].dq1[idx] = merge_holder.dq1[idx]
+        #     loc_ghost_holder[1][iter].dq2[idx] = merge_holder.dq2[idx]
             loc_ghost_holder[1][iter].max_q[idx] = merge_holder.max_q[idx]
             loc_ghost_holder[1][iter].min_q[idx] = merge_holder.min_q[idx]
         end
@@ -59,10 +59,8 @@ end
     localkeys = loc_keys
     for iter in localkeys
         merge_holder = dist_qpack[loc_ghost_holder[1][iter].globalID]
-        for idx in 1:4
-            loc_ghost_holder[1][iter].dq1[idx] = merge_holder.dq1[idx]
-            loc_ghost_holder[1][iter].dq2[idx] = merge_holder.dq2[idx]
-        end
+        loc_ghost_holder[1][iter].dq1 = SVector{4}(merge_holder.dq1)
+        loc_ghost_holder[1][iter].dq2 = SVector{4}(merge_holder.dq2)
     end
     return nothing
 end
@@ -321,6 +319,7 @@ end
 
 @inline function q_variables(loc_globaldata, loc_q, q_result)
     for (idx, itm) in enumerate(loc_globaldata)
+
         rho = itm.prim[1]
         u1 = itm.prim[2]
         u2 = itm.prim[3]
@@ -333,7 +332,7 @@ end
         q_result[4] = -two_times_beta
 
         @. loc_globaldata[idx].q = q_result
-        @. loc_q[idx].q = loc_globaldata[idx].q
+        loc_q[idx].q = SVector{4}(loc_globaldata[idx].q)
     end
     return nothing
 end
@@ -383,14 +382,14 @@ function q_var_derivatives(loc_globaldata, loc_qpack, loc_ghost_holder, power, �
         end
         @. loc_globaldata[idx].max_q = max_q
         @. loc_globaldata[idx].min_q = min_q
-        @. loc_qpack[idx].max_q = loc_globaldata[idx].max_q
-        @. loc_qpack[idx].min_q = loc_globaldata[idx].min_q
+        loc_qpack[idx].max_q = SVector{4}(loc_globaldata[idx].max_q)
+        loc_qpack[idx].min_q = SVector{4}(loc_globaldata[idx].min_q)
         det = (∑_Δx_sqr * ∑_Δy_sqr) - (∑_Δx_Δy * ∑_Δx_Δy)
         one_by_det = 1.0 / det
-        @. loc_globaldata[idx].dq1 = one_by_det * (∑_Δx_Δq * ∑_Δy_sqr - ∑_Δy_Δq * ∑_Δx_Δy)
-        @. loc_globaldata[idx].dq2 = one_by_det * (∑_Δy_Δq * ∑_Δx_sqr - ∑_Δx_Δq * ∑_Δx_Δy)
-        @. loc_qpack[idx].dq1 = loc_globaldata[idx].dq1
-        @. loc_qpack[idx].dq2 = loc_globaldata[idx].dq2
+        loc_globaldata[idx].dq1 = SVector{4}(one_by_det * (∑_Δx_Δq * ∑_Δy_sqr - ∑_Δy_Δq * ∑_Δx_Δy))
+        loc_globaldata[idx].dq2 = SVector{4}(one_by_det * (∑_Δy_Δq * ∑_Δx_sqr - ∑_Δx_Δq * ∑_Δx_Δy))
+        loc_qpack[idx].dq1 = SVector{4}(loc_globaldata[idx].dq1)
+        loc_qpack[idx].dq2 = SVector{4}(loc_globaldata[idx].dq2)
     end
     return nothing
 end
@@ -434,15 +433,15 @@ function q_var_derivatives_innerloop(loc_globaldata, loc_qpack, loc_ghost_holder
         det = (∑_Δx_sqr * ∑_Δy_sqr) - (∑_Δx_Δy * ∑_Δx_Δy)
         one_by_det = 1.0 / det
         # for iter in 1:4
-        @. loc_globaldata[idx].tempdq1 = one_by_det * (∑_Δx_Δq * ∑_Δy_sqr - ∑_Δy_Δq * ∑_Δx_Δy)
-        @. loc_globaldata[idx].tempdq2 = one_by_det * (∑_Δy_Δq * ∑_Δx_sqr - ∑_Δx_Δq * ∑_Δx_Δy)
+        loc_globaldata[idx].tempdq1 = SVector{4}(one_by_det * (∑_Δx_Δq * ∑_Δy_sqr - ∑_Δy_Δq * ∑_Δx_Δy))
+        loc_globaldata[idx].tempdq2 = SVector{4}(one_by_det * (∑_Δy_Δq * ∑_Δx_sqr - ∑_Δx_Δq * ∑_Δx_Δy))
         # end 
     end
     for (idx, _) in enumerate(loc_globaldata)
-        @. loc_globaldata[idx].dq1 = loc_globaldata[idx].tempdq1
-        @. loc_globaldata[idx].dq2 = loc_globaldata[idx].tempdq2
-        @. loc_qpack[idx].dq1 = loc_globaldata[idx].dq1
-        @. loc_qpack[idx].dq2 = loc_globaldata[idx].dq2
+        loc_globaldata[idx].dq1 = SVector{4}(loc_globaldata[idx].tempdq1)
+        loc_globaldata[idx].dq2 = SVector{4}(loc_globaldata[idx].tempdq2)
+        loc_qpack[idx].dq1 = SVector{4}(loc_globaldata[idx].dq1)
+        loc_qpack[idx].dq2 = SVector{4}(loc_globaldata[idx].dq2)
     end
     return nothing
 end

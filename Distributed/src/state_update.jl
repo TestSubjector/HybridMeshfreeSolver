@@ -83,7 +83,9 @@ function state_update_wall(globaldata, loc_prim, idx, ∑_res_sqr, U, Uold, rk)
     globaldata[idx].prim[2] = U[2]*temp
     globaldata[idx].prim[3] = U[3]*temp
     globaldata[idx].prim[4] = (0.4*U[4]) - ((0.2 * temp) * (U[2] * U[2] + U[3] * U[3]))
-    @. loc_prim[idx].prim = globaldata[idx].prim
+    for iter in 1:4
+        loc_prim[idx].prim = setindex(loc_prim[idx].prim, globaldata[idx].prim[iter], iter)
+    end
     return nothing
 end
 
@@ -106,7 +108,9 @@ end
     globaldata[idx].prim[2] = U[2]*temp
     globaldata[idx].prim[3] = U[3]*temp
     globaldata[idx].prim[4] = (0.4*U[4]) - (0.2*temp)*(U[2]*U[2] + U[3]*U[3])
-    @. loc_prim[idx].prim = globaldata[idx].prim
+    for iter in 1:4
+        loc_prim[idx].prim = setindex(loc_prim[idx].prim, globaldata[idx].prim[iter], iter)
+    end
     return nothing
 end
 
@@ -132,7 +136,9 @@ end
     globaldata[idx].prim[2] = U[2]*temp
     globaldata[idx].prim[3] = U[3]*temp
     globaldata[idx].prim[4] = (0.4*U[4]) - (0.2*temp)*(U[2]*U[2] + U[3]*U[3])
-    @. loc_prim[idx].prim = globaldata[idx].prim
+    for iter in 1:4
+        loc_prim[idx].prim = setindex(loc_prim[idx].prim, globaldata[idx].prim[iter], iter)
+    end
     return nothing
 end
 

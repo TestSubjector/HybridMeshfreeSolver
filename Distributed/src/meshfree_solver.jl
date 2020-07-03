@@ -103,7 +103,8 @@ function main()
 
     println(Int(getConfig()["core"]["max_iters"]) + 1)
     function run_code(ghost_holder, dist_keys, dist_globaldata, dist_q, dist_qpack, res_old, res_new, numPoints, main_store)
-        for i in 1:(Int(getConfig()["core"]["max_iters"]))
+        max_iters = Int(getConfig()["core"]["max_iters"])
+        for i in 2:max_iters
             fpi_solver(i, ghost_holder, dist_keys, dist_globaldata, dist_q, dist_qpack, res_old, res_new, numPoints, main_store)
         end
     end
