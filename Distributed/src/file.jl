@@ -225,32 +225,14 @@ function readDistribuedFileQPack(folder_name::String, defprimal, p, global_local
     return local_points_holder
 end
 
-# function readDistribuedFilePrim(folder_name::String, defprimal, p, global_local_map_index)
-#     # println(folder_name)
-#     iter = p - 1
-#     if iter - 1 < 10
-#         filename = folder_name * "/" * "partGrid000" * string(iter-1)
-#     elseif iter - 1 < 100
-#         filename = folder_name * "/" * "partGrid00" * string(iter-1)
-#     elseif iter - 1 < 1000
-#         filename = folder_name * "/" * "partGrid0" * string(iter-1)
-#     else
-#         filename = folder_name * "/" * "partGrid" * string(iter-1)
-#     end
-#     # println(filename)
-#     data = read(filename, String)
-#     splitdata = @view split(data, "\n")[1:end-1]
-#     itmdata = split(splitdata[1])
-#     local_point_count = parse(Int,itmdata[3])
-
-#     local_points_holder = Array{TempPrim,1}(undef, local_point_count)
-#     for idx in 1:local_point_count + 1
-#         if idx == 1
-#             continue
-#         elseif idx <= local_point_count + 1
-#             # itmdata = split(itm)
-#             local_points_holder[idx-1] = TempPrim(zeros(Float64, 4))
-#         end
-#     end
-#     return local_points_holder
-# end
+function returnKeys(loc_ghost_holder)
+    keysIter = keys(loc_ghost_holder[1])
+    keysLength = length(keysIter)
+    keyHolder = zeros(Int64, keysLength)
+    idx = 1
+    for item in keysIter
+        keyHolder[idx] = item
+        idx += 1
+    end
+    return keyHolder
+end

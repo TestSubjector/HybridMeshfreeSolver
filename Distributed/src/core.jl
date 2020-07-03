@@ -11,8 +11,8 @@ function check_leaks()
     end
 end
 
-@inline function updateLocalGhost(loc_ghost_holder, dist_globaldata)
-    localkeys = keys(loc_ghost_holder[1])
+@inline function updateLocalGhost(loc_ghost_holder, loc_keys, dist_globaldata)
+    localkeys = loc_keys
     # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
@@ -25,8 +25,8 @@ end
     return nothing
 end
 
-@inline function updateLocalGhostQ(loc_ghost_holder, dist_q)
-    localkeys = keys(loc_ghost_holder[1])
+@inline function updateLocalGhostQ(loc_ghost_holder, loc_keys, dist_q)
+    localkeys = loc_keys
     # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
@@ -39,8 +39,8 @@ end
     return nothing
 end
 
-@inline function updateLocalGhostQPack(loc_ghost_holder, dist_qpack)
-    localkeys = keys(loc_ghost_holder[1])
+@inline function updateLocalGhostQPack(loc_ghost_holder, loc_keys, dist_qpack)
+    localkeys = loc_keys
     # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
@@ -55,8 +55,8 @@ end
     return nothing
 end
 
-@inline function updateLocalGhostDQ(loc_ghost_holder, dist_qpack)
-    localkeys = keys(loc_ghost_holder[1])
+@inline function updateLocalGhostDQ(loc_ghost_holder, loc_keys, dist_qpack)
+    localkeys = loc_keys
     for iter in localkeys
         merge_holder = dist_qpack[loc_ghost_holder[1][iter].globalID]
         for idx in 1:4
@@ -67,8 +67,8 @@ end
     return nothing
 end
 
-@inline function updateLocalGhostPrim(loc_ghost_holder, dist_prim)
-    localkeys = keys(loc_ghost_holder[1])
+@inline function updateLocalGhostPrim(loc_ghost_holder, loc_keys, dist_prim)
+    localkeys = loc_keys
     # println(localkeys)
     for iter in localkeys
         @. loc_ghost_holder[1][iter].prim = dist_prim[loc_ghost_holder[1][iter].globalID].prim
@@ -108,10 +108,10 @@ function matchInitialQ(loc_q, loc_globaldata)
     end
 end
 
-function placeNormals(loc_globaldata, globaldata, loc_ghost_holder, interior, wall, outer)
+function placeNormals(loc_globaldata, globaldata, loc_ghost_holder, loc_keys, interior, wall, outer)
     local_size = length(loc_globaldata)
     # println(local_size, " is the local size")
-    updateLocalGhost(loc_ghost_holder, globaldata)
+    updateLocalGhost(loc_ghost_holder, loc_keys, globaldata)
     for idx in 1:local_size
         flag = loc_globaldata[idx].flag_1
         if flag == wall || flag == outer
@@ -221,7 +221,7 @@ function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
     return nothing
 end
 
-function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, res_old, res_new, numPoints, main_store)
+function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist_qpack, res_old, res_new, numPoints, main_store)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # print(" 111\n")
     power = main_store[53]
@@ -229,7 +229,7 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, res
 
     @sync for ip in procs(dist_globaldata)
         @spawnat ip begin
-            updateLocalGhostPrim(ghost_holder[:L], dist_qpack)
+            updateLocalGhostPrim(ghost_holder[:L], dist_keys[:L], dist_qpack)
         end
     end
 
@@ -237,7 +237,7 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, res
         println("Starting FuncDelta")
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
-                updateLocalGhost(ghost_holder[:L], dist_globaldata)
+                updateLocalGhost(ghost_holder[:L], dist_keys[:L], dist_globaldata)
             end
         end
     end
@@ -270,14 +270,14 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, res
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
                 q_variables(dist_globaldata[:L], dist_q[:L], result)
-                updateLocalGhostQ(ghost_holder[:L], dist_q)
+                updateLocalGhostQ(ghost_holder[:L], dist_keys[:L], dist_q)
             end
         end
 
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
                 q_var_derivatives(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf, qtilde_i, qtilde_k)
-                updateLocalGhostQPack(ghost_holder[:L], dist_qpack)
+                updateLocalGhostQPack(ghost_holder[:L], dist_keys[:L], dist_qpack)
             end
         end
 
@@ -285,7 +285,7 @@ function fpi_solver(iter, ghost_holder, dist_globaldata, dist_q, dist_qpack, res
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
                     q_var_derivatives_innerloop(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf, qtilde_i, qtilde_k)
-                    updateLocalGhostDQ(ghost_holder[:L], dist_qpack)
+                    updateLocalGhostDQ(ghost_holder[:L], dist_keys[:L], dist_qpack)
                 end
             end
         end
@@ -321,9 +321,6 @@ end
 
 @inline function q_variables(loc_globaldata, loc_q, q_result)
     for (idx, itm) in enumerate(loc_globaldata)
-        # if idx == 2000
-        #     println("==========================================")
-        # end
         rho = itm.prim[1]
         u1 = itm.prim[2]
         u2 = itm.prim[3]
