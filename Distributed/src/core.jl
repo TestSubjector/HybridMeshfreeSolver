@@ -11,7 +11,7 @@ function check_leaks()
     end
 end
 
-@inline function updateLocalGhost(loc_ghost_holder, loc_keys, dist_globaldata)
+function updateLocalGhost(loc_ghost_holder, loc_keys, dist_globaldata)
     localkeys = loc_keys
     # println(localkeys)
     for iter in localkeys
@@ -20,7 +20,7 @@ end
     return nothing
 end
 
-@inline function updateLocalGhostQ(loc_ghost_holder, loc_keys, dist_q)
+function updateLocalGhostQ(loc_ghost_holder, loc_keys, dist_q)
     localkeys = loc_keys
     # println(localkeys)
     for iter in localkeys
@@ -37,7 +37,7 @@ end
     return nothing
 end
 
-@inline function updateLocalGhostQPack(loc_ghost_holder, loc_keys, dist_qpack)
+function updateLocalGhostQPack(loc_ghost_holder, loc_keys, dist_qpack)
     localkeys = loc_keys
     # println(localkeys)
     for iter in localkeys
@@ -55,7 +55,7 @@ end
     return nothing
 end
 
-@inline function updateLocalGhostDQ(loc_ghost_holder, loc_keys, dist_qpack)
+function updateLocalGhostDQ(loc_ghost_holder, loc_keys, dist_qpack)
     localkeys = loc_keys
     for iter in localkeys
         merge_holder = dist_qpack[loc_ghost_holder[1][iter].globalID]
@@ -65,7 +65,7 @@ end
     return nothing
 end
 
-@inline function updateLocalGhostPrim(loc_ghost_holder, loc_keys, dist_prim)
+function updateLocalGhostPrim(loc_ghost_holder, loc_keys, dist_prim)
     localkeys = loc_keys
     # println(localkeys)
     for iter in localkeys
@@ -267,14 +267,18 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
     ∑_Δy_Δf = @view main_store[49:52]
 
     for rk in 1:4
-    #    # if iter == 1
-    #        # println("Starting QVar")
-    #    # end
 
         @timeit to "q_var" begin
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    q_variables(dist_globaldata[:L], dist_q[:L], result)
+                    q_variables(dist_globaldata[:L], dist_q[:L])
+                end
+            end
+        end
+
+        @timeit to "q_var_update" begin
+            @sync for ip in procs(dist_globaldata)
+                @spawnat ip begin
                     updateLocalGhostQ(ghost_holder[:L], dist_keys[:L], dist_q)
                 end
             end
@@ -283,7 +287,14 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
         @timeit to "q_vderv" begin
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    q_var_derivatives(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf, qtilde_i, qtilde_k)
+                    q_var_derivatives(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf)
+                end
+            end
+        end
+
+        @timeit to "q_var_update" begin
+            @sync for ip in procs(dist_globaldata)
+                @spawnat ip begin
                     updateLocalGhostQPack(ghost_holder[:L], dist_keys[:L], dist_qpack)
                 end
             end
@@ -294,6 +305,10 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
                 @sync for ip in procs(dist_globaldata)
                     @spawnat ip begin
                         q_var_derivatives_innerloop(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf, qtilde_i, qtilde_k)
+                    end
+                end
+                @sync for ip in procs(dist_globaldata)
+                    @spawnat ip begin
                         updateLocalGhostDQ(ghost_holder[:L], dist_keys[:L], dist_qpack)
                     end
                 end
@@ -303,7 +318,7 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
         @timeit to "flux_res" begin
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    cal_flux_residual(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k,
+                    cal_flux_residual(dist_globaldata[:L], ghost_holder[:L], Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k,
                     result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
                 end
             end
@@ -316,23 +331,34 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
                 end
             end
         end
-
     end
 
     # @timeit to "extra2" begin
-    #     residue = 0
-    #     if iter <= 2
-    #         residue = 0
-    #     else
-    #         residue = log10(sqrt(sum(res_new))/sqrt(sum(res_old)))
-    #     end 
+    #     @sync for ip in procs(dist_globaldata)
+    #         @spawnat ip begin
+    #     #         # localpartition = dist_globaldata[:L]
+    #     #         # sample(localpart(localpartition))
+    #     #         # sample(localpart(localpartition))
+    #         end
+    #     end
     # end
+        residue = 0
+        if iter <= 2
+            residue = 0
+        else
+            residue = log10(sqrt(sum(res_new))/sqrt(sum(res_old)))
+        end 
 
-    println("Iteration Number ", iter)
+    println("Iteration Number ", iter, " ", residue)
     return nothing
 end
 
-@inline function q_variables(loc_globaldata, loc_q, q_result)
+function sample(loc_globaldata)
+    return nothing
+end 
+
+function q_variables(loc_globaldata, loc_q)
+    q_result = zeros(Float64,4)
     for (idx, itm) in enumerate(loc_globaldata)
 
         rho = itm.prim[1]
@@ -352,7 +378,7 @@ end
     return nothing
 end
 
-function q_var_derivatives(loc_globaldata, loc_qpack, loc_ghost_holder, power, ∑_Δx_Δq, ∑_Δy_Δq, max_q, min_q)
+function q_var_derivatives(loc_globaldata, loc_qpack, loc_ghost_holder, power, ∑_Δx_Δq, ∑_Δy_Δq)
     dist_length = length(loc_globaldata)
 
     for (idx, itm) in enumerate(loc_globaldata)
@@ -364,8 +390,8 @@ function q_var_derivatives(loc_globaldata, loc_qpack, loc_ghost_holder, power, �
         fill!(∑_Δx_Δq, zero(Float64))
         fill!(∑_Δy_Δq, zero(Float64))
         
-        @. max_q = loc_globaldata[idx].q
-        @. min_q = loc_globaldata[idx].q
+        @. loc_globaldata[idx].max_q = loc_globaldata[idx].q
+        @. loc_globaldata[idx].min_q = loc_globaldata[idx].q
 
         for conn in itm.conn
             if conn <= dist_length
@@ -387,16 +413,14 @@ function q_var_derivatives(loc_globaldata, loc_qpack, loc_ghost_holder, power, �
             for i in 1:4
                 ∑_Δx_Δq[i] += (weights * delx * (globaldata_conn.q[i] - loc_globaldata[idx].q[i]))
                 ∑_Δy_Δq[i] += (weights * dely * (globaldata_conn.q[i] - loc_globaldata[idx].q[i]))
-                if max_q[i] < globaldata_conn.q[i]
-                    max_q[i] = globaldata_conn.q[i]
+                if loc_globaldata[idx].max_q[i] < globaldata_conn.q[i]
+                    loc_globaldata[idx].max_q[i] = globaldata_conn.q[i]
                 end
-                if min_q[i] > globaldata_conn.q[i]
-                    min_q[i] = globaldata_conn.q[i]
+                if loc_globaldata[idx].min_q[i] > globaldata_conn.q[i]
+                    loc_globaldata[idx].min_q[i] = globaldata_conn.q[i]
                 end
             end
         end
-        @. loc_globaldata[idx].max_q = max_q
-        @. loc_globaldata[idx].min_q = min_q
         loc_qpack[idx].max_q = SVector{4}(loc_globaldata[idx].max_q)
         loc_qpack[idx].min_q = SVector{4}(loc_globaldata[idx].min_q)
         det = (∑_Δx_sqr * ∑_Δy_sqr) - (∑_Δx_Δy * ∑_Δx_Δy)

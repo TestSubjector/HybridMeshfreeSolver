@@ -5,7 +5,7 @@ module main_module
 using Distributed
 using DistributedArrays
 using StaticArrays
-using StructArrays
+# using StructArrays
 using Profile
 using ProgressMeter
 using Printf

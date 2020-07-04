@@ -1,4 +1,4 @@
-function cal_flux_residual(loc_globaldata, globaldata, loc_ghost_holder, Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k,
+function cal_flux_residual(loc_globaldata, loc_ghost_holder, Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k,
     result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
 
     dist_length = length(loc_globaldata)
