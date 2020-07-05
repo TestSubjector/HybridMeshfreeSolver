@@ -1,5 +1,7 @@
 import SpecialFunctions
 function func_delta(loc_globaldata, loc_ghost_holder, cfl)
+    loc_globaldata = loc_globaldata[:L]
+    loc_ghost_holder = loc_ghost_holder[:L]
     dist_length = length(loc_globaldata)
     for idx in 1:dist_length
         min_delt = one(Float64)
@@ -27,13 +29,14 @@ function func_delta(loc_globaldata, loc_ghost_holder, cfl)
     return nothing
 end
 
-function state_update(loc_globaldata, loc_prim, iter, res_old, res_new, rk, U, Uold, main_store)
-    ∑_res_sqr = zeros(Float64, 1)
-    Mach = main_store[58] 
-    gamma = main_store[59] 
-    pr_inf = main_store[60] 
-    rho_inf = main_store[61] 
-    theta = main_store[62]
+function state_update(loc_globaldata, loc_prim, iter, res_old, res_new, rk, Mach, gamma, pr_inf, rho_inf, theta)
+    loc_globaldata = loc_globaldata[:L]
+    loc_prim = loc_prim[:L]
+    res_old = res_old[:L]
+    res_new = res_new[:L]
+    U = zeros(MVector{4})
+    Uold = zeros(MVector{4})
+    ∑_res_sqr = zeros(MVector{1})
 
     for (idx, _) in enumerate(loc_globaldata)
         if loc_globaldata[idx].flag_1 == 0

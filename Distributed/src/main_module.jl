@@ -4,6 +4,7 @@ module main_module
 
 using Distributed
 using DistributedArrays
+using DistributedArrays.SPMD
 using StaticArrays
 # using StructArrays
 using Profile

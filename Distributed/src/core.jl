@@ -11,7 +11,17 @@ function check_leaks()
     end
 end
 
+function updateLocalGhostZero(loc_ghost_holder, loc_keys, dist_globaldata)
+    localkeys = loc_keys
+    # println(localkeys)
+    for iter in localkeys
+        loc_ghost_holder[1][iter] = dist_globaldata[loc_ghost_holder[1][iter].globalID]
+    end
+    return nothing
+end
+
 function updateLocalGhost(loc_ghost_holder, loc_keys, dist_globaldata)
+    # loc_ghost_holder = loc_ghost_holder[:L]
     localkeys = loc_keys
     # println(localkeys)
     for iter in localkeys
@@ -21,7 +31,8 @@ function updateLocalGhost(loc_ghost_holder, loc_keys, dist_globaldata)
 end
 
 function updateLocalGhostQ(loc_ghost_holder, loc_keys, dist_q)
-    localkeys = loc_keys
+    loc_ghost_holder = loc_ghost_holder[:L]
+    localkeys = loc_keys[:L]
     # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
@@ -38,7 +49,8 @@ function updateLocalGhostQ(loc_ghost_holder, loc_keys, dist_q)
 end
 
 function updateLocalGhostQPack(loc_ghost_holder, loc_keys, dist_qpack)
-    localkeys = loc_keys
+    loc_ghost_holder = loc_ghost_holder[:L]
+    localkeys = loc_keys[:L]
     # println(localkeys)
     for iter in localkeys
         #Dict To Array Equality
@@ -56,7 +68,8 @@ function updateLocalGhostQPack(loc_ghost_holder, loc_keys, dist_qpack)
 end
 
 function updateLocalGhostDQ(loc_ghost_holder, loc_keys, dist_qpack)
-    localkeys = loc_keys
+    loc_ghost_holder = loc_ghost_holder[:L]
+    localkeys = loc_keys[:L]
     for iter in localkeys
         merge_holder = dist_qpack[loc_ghost_holder[1][iter].globalID]
         loc_ghost_holder[1][iter].dq1 = SVector{4}(merge_holder.dq1)
@@ -65,9 +78,18 @@ function updateLocalGhostDQ(loc_ghost_holder, loc_keys, dist_qpack)
     return nothing
 end
 
+# function updateLocalGhostPrimZero(loc_ghost_holder, loc_keys, dist_prim)
+#     localkeys = loc_keys
+#     # println(localkeys)
+#     for iter in localkeys
+#         @. loc_ghost_holder[1][iter].prim = dist_prim[loc_ghost_holder[1][iter].globalID].prim
+#     end
+#     return nothing
+# end
+
 function updateLocalGhostPrim(loc_ghost_holder, loc_keys, dist_prim)
-    localkeys = loc_keys
-    # println(localkeys)
+    loc_ghost_holder = loc_ghost_holder[:L]
+    localkeys = loc_keys[:L]
     for iter in localkeys
         @. loc_ghost_holder[1][iter].prim = dist_prim[loc_ghost_holder[1][iter].globalID].prim
     end
@@ -109,7 +131,7 @@ end
 function placeNormals(loc_globaldata, globaldata, loc_ghost_holder, loc_keys, interior, wall, outer)
     local_size = length(loc_globaldata)
     # println(local_size, " is the local size")
-    updateLocalGhost(loc_ghost_holder, loc_keys, globaldata)
+    updateLocalGhostZero(loc_ghost_holder, loc_keys, globaldata)
     for idx in 1:local_size
         flag = loc_globaldata[idx].flag_1
         if flag == wall || flag == outer
@@ -224,14 +246,25 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
     # print(" 111\n")
     power = main_store[53]
     cfl = main_store[54]
+    power = main_store[53]
+    limiter_flag = main_store[55]
+    vl_const = main_store[56]
+    gamma = main_store[59]
+    Mach = main_store[58] 
+    pr_inf = main_store[60] 
+    rho_inf = main_store[61] 
+    theta = main_store[62]
 
-    @timeit to "prim_update" begin
-        @sync for ip in procs(dist_globaldata)
-            @spawnat ip begin
-                updateLocalGhostPrim(ghost_holder[:L], dist_keys[:L], dist_qpack)
-            end
-        end
-    end
+    # @timeit to "prim_update" begin
+    #     @sync for ip in procs(dist_globaldata)
+    #         @spawnat ip begin
+    #             updateLocalGhostPrimZero(ghost_holder[:L], dist_keys[:L], dist_qpack)
+    #         end
+    #     end 
+    # end
+
+    spmd(updateLocalGhostPrim, ghost_holder, dist_keys, dist_qpack)
+    
 
     @timeit to "extra1" begin
         if iter == 1
@@ -244,94 +277,93 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
         end
     end
 
-    @timeit to "func_delta" begin
-        @sync for ip in procs(dist_globaldata)
-            @spawnat ip begin
-                func_delta(dist_globaldata[:L], ghost_holder[:L], cfl)
-            end
-        end
-    end
+    spmd(spmd_store, dist_globaldata, ghost_holder, dist_keys, dist_q, dist_qpack, cfl, power, limiter_flag, vl_const, gamma,
+        Mach, pr_inf, rho_inf, theta, iter, res_old, res_new, pids=procs(dist_globaldata))
 
-    phi_i = @view main_store[1:4]
-	phi_k = @view main_store[5:8]
-	G_i = @view main_store[9:12]
-    G_k = @view main_store[13:16]
-	result = @view main_store[17:20]
-	qtilde_i = @view main_store[21:24]
-	qtilde_k = @view main_store[25:28]
-	Gxp = @view main_store[29:32]
-	Gxn = @view main_store[33:36]
-	Gyp = @view main_store[37:40]
-	Gyn = @view main_store[41:44]
-    ∑_Δx_Δf = @view main_store[45:48]
-    ∑_Δy_Δf = @view main_store[49:52]
+    # @timeit to "func_delta" begin
+    #     @sync for ip in procs(dist_globaldata)
+    #         @spawnat ip begin
+    #             func_delta(dist_globaldata[:L], ghost_holder[:L], cfl)
+    #         end
+    #     end
+    # end
 
-    for rk in 1:4
+    # phi_i = @view main_store[1:4]
+	# phi_k = @view main_store[5:8]
+	# G_i = @view main_store[9:12]
+    # G_k = @view main_store[13:16]
+	# result = @view main_store[17:20]
+	# qtilde_i = @view main_store[21:24]
+	# qtilde_k = @view main_store[25:28]
+	# Gxp = @view main_store[29:32]
+	# Gxn = @view main_store[33:36]
+	# Gyp = @view main_store[37:40]
+	# Gyn = @view main_store[41:44]
+    # ∑_Δx_Δf = @view main_store[45:48]
+    # ∑_Δy_Δf = @view main_store[49:52]
 
-        @timeit to "q_var" begin
-            @sync for ip in procs(dist_globaldata)
-                @spawnat ip begin
-                    q_variables(dist_globaldata[:L], dist_q[:L])
-                end
-            end
-        end
 
-        @timeit to "q_var_update" begin
-            @sync for ip in procs(dist_globaldata)
-                @spawnat ip begin
-                    updateLocalGhostQ(ghost_holder[:L], dist_keys[:L], dist_q)
-                end
-            end
-        end
 
-        @timeit to "q_vderv" begin
-            @sync for ip in procs(dist_globaldata)
-                @spawnat ip begin
-                    q_var_derivatives(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf)
-                end
-            end
-        end
+        # @timeit to "q_var" begin
+        #     @sync for ip in procs(dist_globaldata)
+        #         @spawnat ip begin
+        # spmd(updateLocalGhostQPack, ghost_holder, dist_keys, dist_qpack, pids=procs(dist_globaldata))
+        #         end
+        #     end
+        # end
 
-        @timeit to "q_var_update" begin
-            @sync for ip in procs(dist_globaldata)
-                @spawnat ip begin
-                    updateLocalGhostQPack(ghost_holder[:L], dist_keys[:L], dist_qpack)
-                end
-            end
-        end
+        # @timeit to "q_var_update" begin
+        #     @sync for ip in procs(dist_globaldata)
+        #         @spawnat ip begin
+        #             updateLocalGhostQ(ghost_holder[:L], dist_keys[:L], dist_q)
+        #         end
+        #     end
+        # end
 
-        @timeit to "q_dervinnerloop" begin
-            for inner_iters in 1:3
-                @sync for ip in procs(dist_globaldata)
-                    @spawnat ip begin
-                        q_var_derivatives_innerloop(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf, qtilde_i, qtilde_k)
-                    end
-                end
-                @sync for ip in procs(dist_globaldata)
-                    @spawnat ip begin
-                        updateLocalGhostDQ(ghost_holder[:L], dist_keys[:L], dist_qpack)
-                    end
-                end
-            end
-        end
+        # @timeit to "q_vderv" begin
+        #     @sync for ip in procs(dist_globaldata)
+        #         @spawnat ip begin
+        #             q_var_derivatives(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power)
+        #         end
+        #     end
+        # end
 
-        @timeit to "flux_res" begin
-            @sync for ip in procs(dist_globaldata)
-                @spawnat ip begin
-                    cal_flux_residual(dist_globaldata[:L], ghost_holder[:L], Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k,
-                    result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
-                end
-            end
-        end
+        # @timeit to "q_var_update" begin
+        #     @sync for ip in procs(dist_globaldata)
+        #         @spawnat ip begin
+        #             updateLocalGhostQPack(ghost_holder[:L], dist_keys[:L], dist_qpack)
+        #         end
+        #     end
+        # end
 
-        @timeit to "state_update" begin
-            @sync for ip in procs(dist_globaldata)
-                @spawnat ip begin
-                    state_update(dist_globaldata[:L], dist_qpack[:L], iter, res_old[:L], res_new[:L], rk, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
-                end
-            end
-        end
-    end
+        # @timeit to "q_dervinnerloop" begin
+        #     for inner_iters in 1:3
+        #         @sync for ip in procs(dist_globaldata)
+        #             @spawnat ip begin
+        #                 q_var_derivatives_innerloop(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power)
+        #                 updateLocalGhostDQ(ghost_holder[:L], dist_keys[:L], dist_qpack)
+        #             endbarrier(;pids=procs(dist_globaldata), tag=nothing)for ip in procs(dist_globaldata)
+        #         #     @spawnat ip begin
+        #         #     end
+        #         # end
+        #     end
+        # end
+
+        # @timeit to "flux_res" begin
+        #     @sync for ip in procs(dist_globaldata)
+        #         @spawnat ip begin
+        #             cal_flux_residual(dist_globaldata[:L], ghost_holder[:L], power, limiter_flag, vl_const, gamma)
+        #         end
+        #     end
+        # end
+
+        # @timeit to "state_update" begin
+        #     @sync for ip in procs(dist_globaldata)
+        #         @spawnat ip begin
+        #             state_update(dist_globaldata[:L], dist_qpack[:L], iter, res_old[:L], res_new[:L], rk, Mach, gamma, pr_inf, rho_inf, theta)
+        #         end
+        #     end
+        # end
 
     # @timeit to "extra2" begin
     #     @sync for ip in procs(dist_globaldata)
@@ -342,23 +374,45 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
     #         end
     #     end
     # end
-        residue = 0
-        if iter <= 2
-            residue = 0
-        else
-            residue = log10(sqrt(sum(res_new))/sqrt(sum(res_old)))
-        end 
+        # residue = 0
+        # if iter <= 2
+        #     residue = 0
+        # else
+        #     residue = log10(sqrt(sum(res_new))/sqrt(sum(res_old)))
+        # end 
 
-    println("Iteration Number ", iter, " ", residue)
+    println("Iteration Number ", iter, " ")
     return nothing
 end
 
-function sample(loc_globaldata)
+function spmd_store(dist_globaldata, ghost_holder, dist_keys, dist_q, dist_qpack, cfl, power, limiter_flag, vl_const, gamma,
+    Mach, pr_inf, rho_inf, theta, iter, res_old, res_new)
+
+    # updateLocalGhostPrim(ghost_holder, dist_keys, dist_qpack)
+    # barrier(;pids=procs(dist_globaldata), tag=nothing)
+    func_delta(dist_globaldata, ghost_holder, cfl)
+    for rk in 1:4
+        q_variables(dist_globaldata, dist_q)
+        updateLocalGhostQ(ghost_holder, dist_keys, dist_q)
+        q_var_derivatives(dist_globaldata, dist_qpack, ghost_holder, power)
+        barrier(;pids=procs(dist_globaldata), tag=nothing)
+        updateLocalGhostQPack(ghost_holder, dist_keys, dist_qpack)
+        barrier(;pids=procs(dist_globaldata), tag=nothing)
+        for inner_iters in 1:3
+            q_var_derivatives_innerloop(dist_globaldata, dist_qpack, ghost_holder, power)
+            updateLocalGhostDQ(ghost_holder, dist_keys, dist_qpack)
+            barrier(;pids=procs(dist_globaldata), tag=nothing)
+        end
+        cal_flux_residual(dist_globaldata, ghost_holder, power, limiter_flag, vl_const, gamma)
+        state_update(dist_globaldata, dist_qpack, iter, res_old, res_new, rk, Mach, gamma, pr_inf, rho_inf, theta)
+    end
     return nothing
 end 
 
 function q_variables(loc_globaldata, loc_q)
-    q_result = zeros(Float64,4)
+    loc_globaldata = loc_globaldata[:L]
+    loc_q = loc_q[:L]
+    q_result = zeros(MVector{4})
     for (idx, itm) in enumerate(loc_globaldata)
 
         rho = itm.prim[1]
@@ -378,7 +432,12 @@ function q_variables(loc_globaldata, loc_q)
     return nothing
 end
 
-function q_var_derivatives(loc_globaldata, loc_qpack, loc_ghost_holder, power, ∑_Δx_Δq, ∑_Δy_Δq)
+function q_var_derivatives(loc_globaldata, loc_qpack, loc_ghost_holder, power)
+    loc_globaldata = loc_globaldata[:L]
+    loc_qpack = loc_qpack[:L]
+    loc_ghost_holder = loc_ghost_holder[:L]
+    ∑_Δx_Δq = zeros(MVector{4})
+    ∑_Δy_Δq = zeros(MVector{4})
     dist_length = length(loc_globaldata)
 
     for (idx, itm) in enumerate(loc_globaldata)
@@ -433,9 +492,15 @@ function q_var_derivatives(loc_globaldata, loc_qpack, loc_ghost_holder, power, �
     return nothing
 end
 
-function q_var_derivatives_innerloop(loc_globaldata, loc_qpack, loc_ghost_holder, power, ∑_Δx_Δq, ∑_Δy_Δq, qi_tilde, qk_tilde)
+function q_var_derivatives_innerloop(loc_globaldata, loc_qpack, loc_ghost_holder, power)
+    loc_globaldata = loc_globaldata[:L]
+    loc_qpack = loc_qpack[:L]
+    loc_ghost_holder = loc_ghost_holder[:L]
     dist_length = length(loc_globaldata)
-
+    ∑_Δx_Δq = zeros(MVector{4})
+    ∑_Δy_Δq = zeros(MVector{4})
+    qi_tilde = zeros(MVector{4})
+    qk_tilde = zeros(MVector{4})
     for (idx, itm) in enumerate(loc_globaldata)
         x_i = itm.x
         y_i = itm.y
