@@ -40,7 +40,7 @@ function main()
     # readFile(file_name::String, globaldata, table, defprimal, wallptsidx, outerptsidx, Interiorptsidx, shapeptsidx,
         # wallpts, Interiorpts, outerpts, shapepts, numPoints)
 
-    println("Read Local Files")
+    # println("Read Local Files")
     # readDistribuedFile(folder_name::String, defprimal, 12, global_local_map_index)
     println("Reading multiple files")
     if format == "quadtree"
@@ -74,6 +74,8 @@ function main()
     keys_holder = reshape(keys_holder, (nworkers()))
     dist_keys = DArray(keys_holder)
 
+
+    println("Reading Normals")
     interior = configData["point"]["interior"]
     wall = configData["point"]["wall"]
     outer = configData["point"]["outer"]
