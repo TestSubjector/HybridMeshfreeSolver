@@ -176,7 +176,14 @@ function calculateConnectivity(loc_globaldata, loc_ghost_holder)
 
         flag = ptInterest.flag_1
 
-        xpos_conn,xneg_conn,ypos_conn,yneg_conn = Array{Int32,1}(undef, 0),Array{Int32,1}(undef, 0),Array{Int32,1}(undef, 0),Array{Int32,1}(undef, 0)
+        xpos_nbhs = 0
+        xneg_nbhs = 0
+        ypos_nbhs = 0
+        yneg_nbhs = 0
+        xpos_conn = SVector{25}([zero(Float64) for iter in 1:25])
+        xneg_conn = SVector{25}([zero(Float64) for iter in 1:25])
+        yneg_conn = SVector{25}([zero(Float64) for iter in 1:25])
+        ypos_conn = SVector{25}([zero(Float64) for iter in 1:25])
 
         tx = ny
         ty = -nx
@@ -196,25 +203,38 @@ function calculateConnectivity(loc_globaldata, loc_ghost_holder)
             dels = delx*tx + dely*ty
             deln = delx*nx + dely*ny
             if dels <= 0.0
-                push!(xpos_conn, itm)
+                xpos_nbhs += 1
+                xpos_conn = setindex(xpos_conn, itm, xpos_nbhs)
             end
             if dels >= 0.0
-                push!(xneg_conn, itm)
+                xneg_nbhs += 1
+                xneg_conn = setindex(xneg_conn, itm, xneg_nbhs)
             end
             if flag == 1
                 if deln <= 0.0
-                    push!(ypos_conn, itm)
+                    ypos_nbhs += 1
+                    ypos_conn = setindex(ypos_conn, itm, ypos_nbhs)
                 end
                 if deln >= 0.0
-                    push!(yneg_conn, itm)
+                    yneg_nbhs += 1
+                    yneg_conn = setindex(yneg_conn, itm, yneg_nbhs)
                 end
             elseif flag == 0
-                push!(yneg_conn, itm)
+                yneg_nbhs += 1
+                yneg_conn = setindex(yneg_conn, itm, yneg_nbhs)
             elseif flag == 2
-                push!(ypos_conn, itm)
+                ypos_nbhs += 1
+                ypos_conn = setindex(ypos_conn, itm, ypos_nbhs)
             end
         end
-        setConnectivity(loc_globaldata[idx], (xpos_conn, xneg_conn, ypos_conn, yneg_conn))
+        loc_globaldata[idx].xpos_conn = xpos_conn
+        loc_globaldata[idx].xneg_conn = xneg_conn
+        loc_globaldata[idx].yneg_conn = yneg_conn
+        loc_globaldata[idx].ypos_conn = ypos_conn 
+        loc_globaldata[idx].xpos_nbhs = xpos_nbhs 
+        loc_globaldata[idx].xneg_nbhs = xneg_nbhs 
+        loc_globaldata[idx].ypos_nbhs = ypos_nbhs 
+        loc_globaldata[idx].yneg_nbhs = yneg_nbhs
     end
     return nothing
 end
@@ -400,6 +420,9 @@ function q_var_derivatives(loc_globaldata, loc_qpack, loc_ghost_holder, power, �
         @. loc_globaldata[idx].min_q = loc_globaldata[idx].q
 
         for conn in itm.conn
+            if conn == zero(Float64)
+                break
+            end
             if conn <= dist_length
                 globaldata_conn = loc_globaldata[conn]
             else
@@ -452,6 +475,9 @@ function q_var_derivatives_innerloop(loc_globaldata, loc_qpack, loc_ghost_holder
         fill!(∑_Δy_Δq, zero(Float64))
 
         for conn in itm.conn
+            if conn == zero(Float64)
+                break
+            end
             if conn <= dist_length
                 globaldata_conn = loc_globaldata[conn]
             else

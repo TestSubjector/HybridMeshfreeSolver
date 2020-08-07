@@ -4,6 +4,9 @@ function func_delta(loc_globaldata, loc_ghost_holder, cfl)
     for idx in 1:dist_length
         min_delt = one(Float64)
         for itm in loc_globaldata[idx].conn
+            if itm == zero(Float64)
+                break
+            end
             if itm <= dist_length
                 globaldata_itm = loc_globaldata[itm]
             else
@@ -49,12 +52,10 @@ function state_update(loc_globaldata, loc_prim, iter, res_old, res_new, rk, U, U
     end
 
     res_new[1] = ∑_res_sqr[1]
-
     if iter <= 2
         res_old[1] = res_new[1]
     end
-
-    return  nothing
+    return nothing
 end
 
 function state_update_wall(globaldata, loc_prim, idx, ∑_res_sqr, U, Uold, rk)

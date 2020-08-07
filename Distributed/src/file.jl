@@ -171,8 +171,12 @@ function readDistribuedFileQuadtree(folder_name::String, defprimal, p, global_lo
                 SVector{4}([zero(Float64) for iter in 1:4]), 
                 SVector{4}([zero(Float64) for iter in 1:4]), 
                 SVector{4}([zero(Float64) for iter in 1:4]), 
-                0.0, 0, 0, 0, 0, Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0),
-                Array{Int32,1}(undef, 0), Array{Int32,1}(undef, 0), 0.0, zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4),
+                0.0, 0, 0, 0, 0,
+                SVector{25}([zero(Int32) for iter in 1:25]), 
+                SVector{25}([zero(Int32) for iter in 1:25]),
+                SVector{25}([zero(Int32) for iter in 1:25]), 
+                SVector{25}([zero(Int32) for iter in 1:25]), 
+                0.0, zeros(Float64, 4), zeros(Float64, 4), zeros(Float64, 4),
                 globalID)
         else
             break

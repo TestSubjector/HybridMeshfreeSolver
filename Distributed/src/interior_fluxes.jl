@@ -17,6 +17,9 @@ function interior_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, ga
     ty = -nx
 
     for itm in loc_globaldata[idx].xpos_conn
+        if itm == zero(Float64)
+            break
+        end
         if itm <= dist_length
             globaldata_itm = loc_globaldata[itm]
         else
@@ -94,6 +97,9 @@ function interior_dGx_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, ga
     ty = -nx
 
     for itm in loc_globaldata[idx].xneg_conn
+        if itm == zero(Float64)
+            break
+        end
 
         if itm <= dist_length
             globaldata_itm = loc_globaldata[itm]
@@ -173,6 +179,9 @@ function interior_dGy_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, ga
     ty = -nx
 
     for itm in loc_globaldata[idx].ypos_conn
+        if itm == zero(Float64)
+            break
+        end
 
         if itm <= dist_length
             globaldata_itm = loc_globaldata[itm]
@@ -253,6 +262,9 @@ function interior_dGy_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, ga
     ty = -nx
 
     for itm in loc_globaldata[idx].yneg_conn
+        if itm == zero(Float64)
+            break
+        end
 
         if itm <= dist_length
             globaldata_itm = loc_globaldata[itm]

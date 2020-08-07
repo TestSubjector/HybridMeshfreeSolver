@@ -17,6 +17,9 @@ function wall_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma,
     ty::Float64 = -nx
 
     for itm in loc_globaldata[idx].xpos_conn
+        if itm == zero(Float64)
+            break
+        end
 
         if itm <= dist_length
             globaldata_itm = loc_globaldata[itm]
@@ -109,6 +112,9 @@ function wall_dGx_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma,
     ty = -nx
 
     for itm in loc_globaldata[idx].xneg_conn
+        if itm == zero(Float64)
+            break
+        end
         if itm <= dist_length
             globaldata_itm = loc_globaldata[itm]
         else
@@ -183,7 +189,9 @@ function wall_dGy_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma,
     ty = -nx
 
     for itm in loc_globaldata[idx].yneg_conn
-
+        if itm == zero(Float64)
+            break
+        end
         if itm <= dist_length
             globaldata_itm = loc_globaldata[itm]
         else

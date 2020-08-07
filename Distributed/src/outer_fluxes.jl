@@ -17,6 +17,9 @@ function outer_dGx_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma
     ty = -nx
 
     for itm in loc_globaldata[idx].xpos_conn
+        if itm == zero(Float64)
+            break
+        end
 
         if itm <= dist_length
             globaldata_itm = loc_globaldata[itm]
@@ -93,6 +96,9 @@ function outer_dGx_neg(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma
     ty = -nx
 
     for itm in loc_globaldata[idx].xneg_conn
+        if itm == zero(Float64)
+            break
+        end
 
         if itm <= dist_length
             globaldata_itm = loc_globaldata[itm]
@@ -166,6 +172,9 @@ function outer_dGy_pos(loc_globaldata, loc_ghost_holder, dist_length, idx, gamma
     ty = -nx
 
     for itm in loc_globaldata[idx].ypos_conn
+        if itm == zero(Float64)
+            break
+        end
         if itm <= dist_length
             globaldata_itm = loc_globaldata[itm]
         else
