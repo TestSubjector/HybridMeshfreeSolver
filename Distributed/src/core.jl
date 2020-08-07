@@ -342,14 +342,14 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
     #         end
     #     end
     # end
-        #residue = 0
-        #if iter <= 2
-        #    residue = 0
-        #else
-        #    residue = log10(sqrt(sum(res_new))/sqrt(sum(res_old)))
-        #end 
+        residue = 0
+        if iter <= 2
+           residue = 0
+        else
+           residue = log10(sqrt(sum(res_new))/sqrt(sum(res_old)))
+        end 
 
-    println("Iteration Number ", iter)
+    println("Iteration Number ", iter, " ", residue)
     return nothing
 end
 

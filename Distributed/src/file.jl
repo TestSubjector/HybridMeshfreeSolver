@@ -198,20 +198,16 @@ function readDistribuedFileQ(folder_name::String, defprimal, p, global_local_map
     ghost_point_count = 0
     local_points_holder = []
 
-
     for splitdata in eachline(filename)
         if idx == 1
             itmdata = split(splitdata)
             local_point_count = parse(Int,itmdata[3])
             ghost_point_count = parse(Int,itmdata[4])
-            local_points_holder = Array{TempQ,1}(undef, local_point_count)
             break
         end
     end
 
-    for idx in 1:local_point_count
-        local_points_holder[idx] = TempQ(SVector{4}([zero(Float64) for iter in 1:4]))
-    end
+    local_points_holder = [TempQ(SVector{4}([zero(Float64) for iter in 1:4])) for idx in 1:local_point_count]
 
     return local_points_holder
 end
@@ -240,18 +236,16 @@ function readDistribuedFileQPack(folder_name::String, defprimal, p, global_local
             itmdata = split(splitdata)
             local_point_count = parse(Int,itmdata[3])
             ghost_point_count = parse(Int,itmdata[4])
-            local_points_holder = Array{TempQPack,1}(undef, local_point_count)
             break
         end
     end
+    
+    local_points_holder = [TempQPack(SVector{4}([zero(Float64) for iter in 1:4]), 
+        SVector{4}([zero(Float64) for iter in 1:4]), 
+        SVector{4}([zero(Float64) for iter in 1:4]), 
+        SVector{4}([zero(Float64) for iter in 1:4]), 
+        SVector{4}([zero(Float64) for iter in 1:4])) for idx in 1:local_point_count]
 
-    for idx in 1:local_point_count
-        local_points_holder[idx] = TempQPack(SVector{4}([zero(Float64) for iter in 1:4]), 
-        SVector{4}([zero(Float64) for iter in 1:4]), 
-        SVector{4}([zero(Float64) for iter in 1:4]), 
-        SVector{4}([zero(Float64) for iter in 1:4]), 
-        SVector{4}([zero(Float64) for iter in 1:4]))
-    end
     return local_points_holder
 end
 
