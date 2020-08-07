@@ -233,7 +233,7 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
         end
     end
 
-    @timeit to "extra1" begin
+    #@timeit to "extra1" begin
         if iter == 1
             println("Starting FuncDelta")
             @sync for ip in procs(dist_globaldata)
@@ -242,7 +242,7 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
                 end
             end
         end
-    end
+    #end
 
     @timeit to "func_delta" begin
         @sync for ip in procs(dist_globaldata)
@@ -342,14 +342,14 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
     #         end
     #     end
     # end
-        residue = 0
-        if iter <= 2
-            residue = 0
-        else
-            residue = log10(sqrt(sum(res_new))/sqrt(sum(res_old)))
-        end 
+        #residue = 0
+        #if iter <= 2
+        #    residue = 0
+        #else
+        #    residue = log10(sqrt(sum(res_new))/sqrt(sum(res_old)))
+        #end 
 
-    println("Iteration Number ", iter, " ", residue)
+    println("Iteration Number ", iter)
     return nothing
 end
 

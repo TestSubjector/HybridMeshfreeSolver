@@ -35,7 +35,6 @@ function createGlobalLocalMapIndex(global_local_map_index, global_local_direct_i
     end
 end
 
-
 function readGhostFile(folder_name::String, ghost_holder, global_local_map_index, dist_globaldata)
     # println(ghost_folder_name)
     for iter in 1:length(workers())
@@ -49,18 +48,32 @@ function readGhostFile(folder_name::String, ghost_holder, global_local_map_index
             filename = folder_name * "/" * "partGrid" * string(iter-1)
         end
         # println(filename)
-        data = read(filename, String)
-        splitdata = @view split(data, "\n")[1:end-1]
+        idx = 1
+        local_point_count = 0
+        ghost_point_count = 0
         ghost_holder[iter] = Dict{Int64,Point}()
-        itmdata = split(splitdata[1])
-        local_point_count = parse(Int,itmdata[3])
-        ghost_point_count = parse(Int,itmdata[4])
-
-        for (idx, itm) in enumerate(splitdata)
-            if idx > local_point_count + 1
-                itmdata = split(itm)
-                ghost_holder[iter][idx-1] = dist_globaldata[global_local_map_index[(parse(Float64,itmdata[2]), parse(Float64, itmdata[3]))]]
+        for splitdata in eachline(filename)
+            if idx == local_point_count + ghost_point_count + 2
+               break 
             end
+            
+            if idx == 1
+                itmdata = split(splitdata)
+                local_point_count = parse(Int,itmdata[3])
+                ghost_point_count = parse(Int,itmdata[4])
+                # print(itmdata)
+            end
+
+            # for (idx, itm) in enumerate(splitdata)
+            if idx >= local_point_count + 2
+                itmdata = split(splitdata)
+                ghost_holder[iter][idx-1] = dist_globaldata[global_local_map_index[(parse(Float64,itmdata[2]), parse(Float64, itmdata[3]))]]
+                # if idx == local_point_count + 2
+                    # println(idx, " ", splitdata, " ", ghost_holder[iter][idx-1])
+                # end
+            end
+            # end
+            idx+=1
         end
     end
 end
@@ -180,19 +193,24 @@ function readDistribuedFileQ(folder_name::String, defprimal, p, global_local_map
         filename = folder_name * "/" * "partGrid" * string(iter-1)
     end
     # println(filename)
-    data = read(filename, String)
-    splitdata = @view split(data, "\n")[1:end-1]
-    itmdata = split(splitdata[1])
-    local_point_count = parse(Int,itmdata[3])
+    idx = 1
+    local_point_count = 0
+    ghost_point_count = 0
+    local_points_holder = []
 
-    local_points_holder = Array{TempQ,1}(undef, local_point_count)
-    for idx in 1:local_point_count + 1
+
+    for splitdata in eachline(filename)
         if idx == 1
-            continue
-        elseif idx <= local_point_count + 1
-            # itmdata = split(itm)
-            local_points_holder[idx-1] = TempQ(SVector{4}([zero(Float64) for iter in 1:4]))
+            itmdata = split(splitdata)
+            local_point_count = parse(Int,itmdata[3])
+            ghost_point_count = parse(Int,itmdata[4])
+            local_points_holder = Array{TempQ,1}(undef, local_point_count)
+            break
         end
+    end
+
+    for idx in 1:local_point_count
+        local_points_holder[idx] = TempQ(SVector{4}([zero(Float64) for iter in 1:4]))
     end
 
     return local_points_holder
@@ -211,24 +229,28 @@ function readDistribuedFileQPack(folder_name::String, defprimal, p, global_local
     else
         filename = folder_name * "/" * "partGrid" * string(iter-1)
     end
-    # println(filename)
-    data = read(filename, String)
-    splitdata = @view split(data, "\n")[1:end-1]
-    itmdata = split(splitdata[1])
-    local_point_count = parse(Int,itmdata[3])
+    idx = 1
+    local_point_count = 0
+    ghost_point_count = 0
+    local_points_holder = []
 
-    local_points_holder = Array{TempQPack,1}(undef, local_point_count)
-    for idx in 1:local_point_count + 1
+
+    for splitdata in eachline(filename)
         if idx == 1
-            continue
-        elseif idx <= local_point_count + 1
-            # itmdata = split(itm)
-            local_points_holder[idx-1] = TempQPack(SVector{4}([zero(Float64) for iter in 1:4]), 
-                                            SVector{4}([zero(Float64) for iter in 1:4]), 
-                                            SVector{4}([zero(Float64) for iter in 1:4]), 
-                                            SVector{4}([zero(Float64) for iter in 1:4]), 
-                                            SVector{4}([zero(Float64) for iter in 1:4]))
+            itmdata = split(splitdata)
+            local_point_count = parse(Int,itmdata[3])
+            ghost_point_count = parse(Int,itmdata[4])
+            local_points_holder = Array{TempQPack,1}(undef, local_point_count)
+            break
         end
+    end
+
+    for idx in 1:local_point_count
+        local_points_holder[idx] = TempQPack(SVector{4}([zero(Float64) for iter in 1:4]), 
+        SVector{4}([zero(Float64) for iter in 1:4]), 
+        SVector{4}([zero(Float64) for iter in 1:4]), 
+        SVector{4}([zero(Float64) for iter in 1:4]), 
+        SVector{4}([zero(Float64) for iter in 1:4]))
     end
     return local_points_holder
 end
