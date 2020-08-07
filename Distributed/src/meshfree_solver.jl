@@ -30,9 +30,10 @@ function main()
 
     global_local_map_index = Dict{Tuple{Float64, Float64},Int64}()
     global_local_direct_index = Array{Int64, 1}(undef, numPoints)
+    index_holder = dzeros(Int, nworkers())
     println("Indexing")
 
-    createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, folder_name::String)
+    createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, index_holder, folder_name::String)
     # println(global_local_map_index)
 
     println("Start Read")
@@ -44,7 +45,7 @@ function main()
     # readDistribuedFile(folder_name::String, defprimal, 12, global_local_map_index)
     println("Reading multiple files")
     if format == "quadtree"
-        globaldata_parts = [@spawnat p readDistribuedFileQuadtree(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
+        globaldata_parts = [@spawnat p readDistribuedFileQuadtree(folder_name::String, defprimal, p, index_holder) for p in workers()]
     elseif format == "old"
         globaldata_parts = [@spawnat p readDistribuedFile(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
     end

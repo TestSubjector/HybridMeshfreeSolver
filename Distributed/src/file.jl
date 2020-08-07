@@ -4,7 +4,7 @@ function returnFileLength(file_name::String)
     return length(splitdata) - 2
 end
 
-function createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, folder_name::String)
+function createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, index_holder, folder_name::String)
     index_flag = 1
     # println("Reading multiple files")
     for iter in 1:length(workers())
@@ -35,6 +35,7 @@ function createGlobalLocalMapIndex(global_local_map_index, global_local_direct_i
             end
             idx+=1
         end
+        m1 = @spawnat iter+1 index_holder[:L][1] = index_flag - 1
     end
 end
 
@@ -124,7 +125,7 @@ function readDistribuedFile(folder_name::String, defprimal, p, global_local_map_
     return local_points_holder
 end
 
-function readDistribuedFileQuadtree(folder_name::String, defprimal, p, global_local_map_index)
+function readDistribuedFileQuadtree(folder_name::String, defprimal, p, index_holder)
     # println(folder_name)
     iter = p - 1
     if iter - 1 < 10
@@ -142,6 +143,7 @@ function readDistribuedFileQuadtree(folder_name::String, defprimal, p, global_lo
     ghost_point_count = 0
     local_points_holder = []
 
+    store_index = index_holder[:L][1]
 
     for splitdata in eachline(filename)
         if idx == 1
@@ -149,9 +151,10 @@ function readDistribuedFileQuadtree(folder_name::String, defprimal, p, global_lo
             local_point_count = parse(Int,itmdata[3])
             ghost_point_count = parse(Int,itmdata[4])
             local_points_holder = Array{Point,1}(undef, local_point_count)
+            store_index -= local_point_count
         elseif idx <= local_point_count + 1
             itmdata = split(splitdata)
-            globalID = global_local_map_index[(parse(Float64,itmdata[2]), parse(Float64, itmdata[3]))]
+            globalID = store_index + idx - 1
             local_points_holder[idx-1] = Point(parse(Int,itmdata[1]),
                 parse(Float64, itmdata[2]),
                 parse(Float64, itmdata[3]),
