@@ -164,7 +164,7 @@ function calculateNormals(left, right, mx, my)
     return (nx,ny)
 end
 
-function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
+function calculateConnectivity(loc_globaldata, loc_ghost_holder)
     local_size = length(loc_globaldata)
 
     for idx in 1:local_size
@@ -219,12 +219,19 @@ function calculateConnectivity(loc_globaldata, globaldata, loc_ghost_holder)
     return nothing
 end
 
-function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist_qpack, res_old, res_new, numPoints, main_store)
+function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist_qpack, res_old, res_new, main_store)
     # println(IOContext(stdout, :compact => false), globaldata[3].prim)
     # print(" 111\n")
     power = main_store[53]
     cfl = main_store[54]
-
+    limiter_flag = main_store[55]
+    vl_const = main_store[56]
+    gamma = main_store[59]
+    Mach = main_store[58] 
+    pr_inf = main_store[60] 
+    rho_inf = main_store[61] 
+    theta = main_store[62]
+    
     @timeit to "prim_update" begin
         @sync for ip in procs(dist_globaldata)
             @spawnat ip begin
@@ -318,8 +325,7 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
         @timeit to "flux_res" begin
             @sync for ip in procs(dist_globaldata)
                 @spawnat ip begin
-                    cal_flux_residual(dist_globaldata[:L], ghost_holder[:L], Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k,
-                    result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
+                    cal_flux_residual(dist_globaldata[:L], ghost_holder[:L], power, limiter_flag, vl_const, gamma)
                 end
             end
         end

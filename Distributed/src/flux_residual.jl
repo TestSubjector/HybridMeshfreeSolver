@@ -1,11 +1,21 @@
-function cal_flux_residual(loc_globaldata, loc_ghost_holder, Gxp, Gxn, Gyp, Gyn, phi_i, phi_k, G_i, G_k,
-    result, qtilde_i, qtilde_k, ∑_Δx_Δf, ∑_Δy_Δf, main_store)
+function cal_flux_residual(loc_globaldata, loc_ghost_holder, power, limiter_flag, vl_const, gamma)
+
+    phi_i = zeros(MVector{4})
+	phi_k = zeros(MVector{4})
+	G_i = zeros(MVector{4})
+    G_k = zeros(MVector{4})
+	result = zeros(MVector{4})
+	qtilde_i = zeros(MVector{4})
+	qtilde_k = zeros(MVector{4})
+	Gxp = zeros(MVector{4})
+	Gxn = zeros(MVector{4})
+	Gyp = zeros(MVector{4})
+	Gyn = zeros(MVector{4})
+    ∑_Δx_Δf = zeros(MVector{4})
+    ∑_Δy_Δf = zeros(MVector{4})
+
 
     dist_length = length(loc_globaldata)
-    power = main_store[53]
-    limiter_flag = main_store[55]
-    vl_const = main_store[56]
-    gamma = main_store[59]
 
 	for idx in 1:dist_length
 		if loc_globaldata[idx].flag_1 == 0
