@@ -7,7 +7,7 @@ end
 function createGlobalLocalMapIndex(index_holder, folder_name::String)
     index_flag = 0
     # println("Reading multiple files")
-    for iter in 1:length(workers())
+    @sync for iter in 1:length(workers())
         if iter - 1 < 10
             filename = folder_name * "/" * "partGrid000" * string(iter-1)
         elseif iter - 1 < 100
@@ -20,7 +20,6 @@ function createGlobalLocalMapIndex(index_holder, folder_name::String)
         # println(filename)
         idx = 1
         local_point_count = 0
-
         for splitdata in eachline(filename)
             if idx == 1
                 itmdata = split(splitdata)
@@ -29,46 +28,45 @@ function createGlobalLocalMapIndex(index_holder, folder_name::String)
             end
         end
         index_flag += local_point_count
-        m1 = @spawnat iter+1 index_holder[:L][1] = index_flag
+        @spawnat iter+1 index_holder[:L][1] = index_flag
     end
 end
 
-function readGhostFile(folder_name::String, ghost_holder, dist_globaldata)
-    # println(ghost_folder_name)
-    for iter in 1:length(workers())
-        if iter - 1 < 10
-            filename = folder_name * "/" * "partGrid000" * string(iter-1)
-        elseif iter - 1 < 100
-            filename = folder_name * "/" * "partGrid00" * string(iter-1)
-        elseif iter - 1 < 1000
-            filename = folder_name * "/" * "partGrid0" * string(iter-1)
-        else
-            filename = folder_name * "/" * "partGrid" * string(iter-1)
-        end
-        # println(filename)
-        idx = 1
-        local_point_count = 0
-        ghost_point_count = 0
-        ghost_holder[iter] = Dict{Int64,Point}()
-        for splitdata in eachline(filename)
-            if idx == local_point_count + ghost_point_count + 2
-               break 
-            end
-            
-            if idx == 1
-                itmdata = split(splitdata)
-                local_point_count = parse(Int,itmdata[3])
-                ghost_point_count = parse(Int,itmdata[4])
-            end
-
-            if idx >= local_point_count + 2
-                itmdata = split(splitdata)
-                globalidx = parse(Int,itmdata[1])
-                ghost_holder[iter][idx-1] = dist_globaldata[globalidx]
-            end
-            idx+=1
-        end
+function readGhostFile(folder_name::String, ghost_holder, dist_globaldata, p)
+    # println(ghost_holder)
+    iter = p - 1
+    if iter - 1 < 10
+        filename = folder_name * "/" * "partGrid000" * string(iter-1)
+    elseif iter - 1 < 100
+        filename = folder_name * "/" * "partGrid00" * string(iter-1)
+    elseif iter - 1 < 1000
+        filename = folder_name * "/" * "partGrid0" * string(iter-1)
+    else
+        filename = folder_name * "/" * "partGrid" * string(iter-1)
     end
+    # println(filename)
+    idx = 1
+    local_point_count = 0
+    ghost_point_count = 0
+    ghost_holder[1] = Dict{Int64,Point}()
+    for splitdata in eachline(filename)
+        if idx == local_point_count + ghost_point_count + 2
+           break 
+        end
+        
+        if idx == 1
+            itmdata = split(splitdata)
+            local_point_count = parse(Int,itmdata[3])
+            ghost_point_count = parse(Int,itmdata[4])
+        end
+        if idx >= local_point_count + 2
+            itmdata = split(splitdata)
+            globalidx = parse(Int,itmdata[1])
+            ghost_holder[1][idx-1] = dist_globaldata[globalidx]
+        end
+        idx+=1
+    end
+    return nothing
 end
 
 function readDistribuedFile(folder_name::String, defprimal, p, global_local_map_index)
