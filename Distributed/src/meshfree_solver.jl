@@ -33,7 +33,7 @@ function main()
     index_holder = dzeros(Int, nworkers())
     println("Indexing")
 
-    createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, index_holder, folder_name::String)
+    createGlobalLocalMapIndex(index_holder, folder_name::String)
     # println(global_local_map_index)
 
     println("Start Read")
@@ -53,17 +53,17 @@ function main()
     dist_globaldata = DArray(globaldata_parts)
 
     println("Reading multiple files for Q")
-    q_parts = [@spawnat p readDistribuedFileQ(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
+    q_parts = [@spawnat p readDistribuedFileQ(folder_name::String, defprimal, p) for p in workers()]
     q_parts = reshape(q_parts, (nworkers()))
     dist_q = DArray(q_parts)
 
     println("Reading multiple files for QPack")
-    dq_parts = [@spawnat p readDistribuedFileQPack(folder_name::String, defprimal, p, global_local_map_index) for p in workers()]
+    dq_parts = [@spawnat p readDistribuedFileQPack(folder_name::String, defprimal, p) for p in workers()]
     dq_parts = reshape(dq_parts, (nworkers()))
     dist_qpack = DArray(dq_parts)
 
     println("Reading Ghost")
-    readGhostFile(folder_name, ghost_holder, global_local_map_index, dist_globaldata)
+    readGhostFile(folder_name, ghost_holder, dist_globaldata)
 
     ghost_holder = distribute(ghost_holder, procs=workers(), dist=(length(workers()),))
     keys_holder = [@spawnat p returnKeys(ghost_holder[:L]) for p in workers()]

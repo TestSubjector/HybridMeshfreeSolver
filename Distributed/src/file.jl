@@ -4,8 +4,8 @@ function returnFileLength(file_name::String)
     return length(splitdata) - 2
 end
 
-function createGlobalLocalMapIndex(global_local_map_index, global_local_direct_index, index_holder, folder_name::String)
-    index_flag = 1
+function createGlobalLocalMapIndex(index_holder, folder_name::String)
+    index_flag = 0
     # println("Reading multiple files")
     for iter in 1:length(workers())
         if iter - 1 < 10
@@ -25,21 +25,15 @@ function createGlobalLocalMapIndex(global_local_map_index, global_local_direct_i
             if idx == 1
                 itmdata = split(splitdata)
                 local_point_count = parse(Int,itmdata[3])
-            elseif idx <= local_point_count + 1
-                itmdata = split(splitdata)
-                global_local_direct_index[parse(Int,itmdata[1])] = index_flag
-                global_local_map_index[(parse(Float64,itmdata[2]), parse(Float64, itmdata[3]))] = index_flag
-                index_flag += 1
-            else
                 break
             end
-            idx+=1
         end
-        m1 = @spawnat iter+1 index_holder[:L][1] = index_flag - 1
+        index_flag += local_point_count
+        m1 = @spawnat iter+1 index_holder[:L][1] = index_flag
     end
 end
 
-function readGhostFile(folder_name::String, ghost_holder, global_local_map_index, dist_globaldata)
+function readGhostFile(folder_name::String, ghost_holder, dist_globaldata)
     # println(ghost_folder_name)
     for iter in 1:length(workers())
         if iter - 1 < 10
@@ -69,7 +63,8 @@ function readGhostFile(folder_name::String, ghost_holder, global_local_map_index
 
             if idx >= local_point_count + 2
                 itmdata = split(splitdata)
-                ghost_holder[iter][idx-1] = dist_globaldata[global_local_map_index[(parse(Float64,itmdata[2]), parse(Float64, itmdata[3]))]]
+                globalidx = parse(Int,itmdata[1])
+                ghost_holder[iter][idx-1] = dist_globaldata[globalidx]
             end
             idx+=1
         end
@@ -189,7 +184,7 @@ function readDistribuedFileQuadtree(folder_name::String, defprimal, p, index_hol
     return local_points_holder
 end
 
-function readDistribuedFileQ(folder_name::String, defprimal, p, global_local_map_index)
+function readDistribuedFileQ(folder_name::String, defprimal, p)
 
     # println(folder_name)
     iter = p - 1
@@ -222,7 +217,7 @@ function readDistribuedFileQ(folder_name::String, defprimal, p, global_local_map
     return local_points_holder
 end
 
-function readDistribuedFileQPack(folder_name::String, defprimal, p, global_local_map_index)
+function readDistribuedFileQPack(folder_name::String, defprimal, p)
 
     # println(folder_name)
     iter = p - 1
