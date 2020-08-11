@@ -106,10 +106,9 @@ function matchInitialQ(loc_q, loc_globaldata)
     end
 end
 
-function placeNormals(loc_globaldata, globaldata, loc_ghost_holder, loc_keys, interior, wall, outer)
+function placeNormals(loc_globaldata, loc_ghost_holder, interior, wall, outer)
     local_size = length(loc_globaldata)
-    # println(local_size, " is the local size")
-    updateLocalGhost(loc_ghost_holder, loc_keys, globaldata)
+
     for idx in 1:local_size
         flag = loc_globaldata[idx].flag_1
         if flag == wall || flag == outer

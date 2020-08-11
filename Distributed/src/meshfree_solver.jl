@@ -65,7 +65,7 @@ function main()
     outer = configData["point"]["outer"]
     @sync for pid in procs(dist_globaldata)
         @spawnat pid begin
-            placeNormals(dist_globaldata[:L], dist_globaldata, ghost_holder[:L], dist_keys[:L], interior, wall, outer)
+            placeNormals(dist_globaldata[:L], ghost_holder[:L], interior, wall, outer)
         end
     end
 
