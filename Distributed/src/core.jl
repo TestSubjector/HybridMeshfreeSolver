@@ -27,12 +27,8 @@ function updateLocalGhostQ(loc_ghost_holder, loc_keys, dist_q)
         #Dict To Array Equality
         merge_holder =  dist_q[loc_ghost_holder[1][iter].globalID]
         for idx in 1:4
-            loc_ghost_holder[1][iter].q[idx] =merge_holder.q[idx]
+            loc_ghost_holder[1][iter].q[idx] = merge_holder.q[idx]
         end
-        # if iter == 63050000
-        #     print("Q>> ")
-        #     println(loc_ghost_holder[1][iter])
-        # end
     end
     return nothing
 end

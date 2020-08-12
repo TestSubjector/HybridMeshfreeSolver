@@ -20,13 +20,16 @@ function createGlobalLocalMapIndex(index_holder, folder_name::String)
         # println(filename)
         idx = 1
         local_point_count = 0
-        for splitdata in eachline(filename)
+        fp = open(filename)
+        file_iter = eachline(fp)
+        for splitdata in file_iter
             if idx == 1
                 itmdata = split(splitdata)
                 local_point_count = parse(Int,itmdata[3])
                 break
             end
         end
+        close(fp)
         index_flag += local_point_count
         @spawnat iter+1 index_holder[:L][1] = index_flag
     end
@@ -49,7 +52,10 @@ function readGhostFile(folder_name::String, ghost_holder, dist_globaldata, p)
     local_point_count = 0
     ghost_point_count = 0
     ghost_holder[1] = Dict{Int64,Point}()
-    for splitdata in eachline(filename)
+    fp = open(filename)
+    file_iter = eachline(fp)
+
+    for splitdata in file_iter
         if idx == local_point_count + ghost_point_count + 2
            break 
         end
@@ -66,6 +72,7 @@ function readGhostFile(folder_name::String, ghost_holder, dist_globaldata, p)
         end
         idx+=1
     end
+    close(fp)
     return nothing
 end
 
@@ -138,7 +145,10 @@ function readDistribuedFileQuadtree(folder_name::String, defprimal, p, index_hol
 
     store_index = index_holder[:L][1]
 
-    for splitdata in eachline(filename)
+    fp = open(filename)
+    file_iter = eachline(fp)
+
+    for splitdata in file_iter
         if idx == 1
             itmdata = split(splitdata)
             local_point_count = parse(Int,itmdata[3])
@@ -179,6 +189,7 @@ function readDistribuedFileQuadtree(folder_name::String, defprimal, p, index_hol
         end
         idx+=1
     end
+    close(fp)
     return local_points_holder
 end
 
@@ -201,7 +212,10 @@ function readDistribuedFileQ(folder_name::String, defprimal, p)
     ghost_point_count = 0
     local_points_holder = []
 
-    for splitdata in eachline(filename)
+    fp = open(filename)
+    file_iter = eachline(fp)
+
+    for splitdata in file_iter
         if idx == 1
             itmdata = split(splitdata)
             local_point_count = parse(Int,itmdata[3])
@@ -209,6 +223,7 @@ function readDistribuedFileQ(folder_name::String, defprimal, p)
             break
         end
     end
+    close(fp)
 
     local_points_holder = [TempQ(SVector{4}([zero(Float64) for iter in 1:4])) for idx in 1:local_point_count]
 
@@ -233,8 +248,10 @@ function readDistribuedFileQPack(folder_name::String, defprimal, p)
     ghost_point_count = 0
     local_points_holder = []
 
+    fp = open(filename)
+    file_iter = eachline(fp)
 
-    for splitdata in eachline(filename)
+    for splitdata in file_iter
         if idx == 1
             itmdata = split(splitdata)
             local_point_count = parse(Int,itmdata[3])
@@ -242,7 +259,7 @@ function readDistribuedFileQPack(folder_name::String, defprimal, p)
             break
         end
     end
-    
+    close(fp)
     local_points_holder = [TempQPack(SVector{4}([zero(Float64) for iter in 1:4]), 
         SVector{4}([zero(Float64) for iter in 1:4]), 
         SVector{4}([zero(Float64) for iter in 1:4]), 
