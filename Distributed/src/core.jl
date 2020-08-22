@@ -322,13 +322,16 @@ function fpi_solver(iter, ghost_holder, dist_keys, dist_globaldata, dist_q, dist
             end
         end
 
-        @timeit to "q_dervinnerloop" begin
-            for inner_iters in 1:3
+      
+        for inner_iters in 1:3
+            @timeit to "q_dervinnerloop" begin
                 @sync for ip in procs(dist_globaldata)
                     @spawnat ip begin
                         q_var_derivatives_innerloop(dist_globaldata[:L], dist_qpack[:L], ghost_holder[:L], power, ∑_Δx_Δf, ∑_Δy_Δf, qtilde_i, qtilde_k)
                     end
                 end
+            end
+            @timeit to "q_dervinnerloop_update" begin
                 @sync for ip in procs(dist_globaldata)
                     @spawnat ip begin
                         updateLocalGhostDQ(ghost_holder[:L], dist_keys[:L], dist_qpack)
